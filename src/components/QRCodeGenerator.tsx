@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import QRCodeStyling from 'qr-code-styling'
-import { Download } from 'lucide-react'
+import { Download, X } from 'lucide-react'
 
 type ErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H'
 type DotType = 'square' | 'dots' | 'rounded' | 'classy' | 'classy-rounded'
@@ -11,19 +11,26 @@ const QRCodeGenerator = () => {
   const [options, setOptions] = useState({
     data: '',
     errorCorrectionLevel: 'H' as ErrorCorrectionLevel,
-    bgColor: '#fff',
-    qrColor: '#000',
+    bgColor: '#ffffff',
+    qrColor: '#000000',
     dotType: 'square' as DotType,
     cornerType: 'square' as CornerType,
     imageFormat: 'png' as ImageFormat,
-    size: 300
+    size: 300,
+    logoSize: 0.2 // 20% dari ukuran QR code
   })
+
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [logoError, setLogoError] = useState<string | null>(null)
 
   const qrCode = useRef<QRCodeStyling | null>(null)
   const qrRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    if (qrRef.current) {
+    const container = qrRef.current
+    
+    if (container) {
       qrCode.current = new QRCodeStyling({
         width: options.size,
         height: options.size,
@@ -34,7 +41,8 @@ const QRCodeGenerator = () => {
         },
         imageOptions: {
           hideBackgroundDots: true,
-          imageSize: 0.4
+          imageSize: options.logoSize,
+          margin: 5
         },
         dotsOptions: {
           color: options.qrColor,
@@ -46,20 +54,59 @@ const QRCodeGenerator = () => {
         },
         backgroundOptions: {
           color: options.bgColor
-        }
+        },
+        image: logoPreview || undefined
       })
-
-      const container = qrRef.current
+  
       container.style.width = '100%'
       container.style.height = '100%'
       
       qrCode.current.append(container)
     }
-
+  
     return () => {
-      if (qrRef.current) qrRef.current.innerHTML = ''
+      if (container) {
+        container.innerHTML = ''
+      }
     }
-  }, [options])
+  }, [options, logoPreview])
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLogoError(null)
+    const file = e.target.files?.[0]
+    
+    if (!file) return
+
+    // Validasi ukuran file
+    if (file.size > 500 * 1024) { // 500KB
+      setLogoError('Ukuran file maksimal 500KB')
+      return
+    }
+
+    // Validasi tipe file
+    if (!file.type.startsWith('image/')) {
+      setLogoError('File harus berupa gambar')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      if (e.target?.result) {
+        setLogoPreview(e.target.result as string)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const removeLogo = () => {
+    setLogoPreview(null)
+    setLogoError(null)
+    
+    // Reset input file
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
 
   const downloadQR = () => {
     if (qrCode.current && options.data) {
@@ -91,6 +138,11 @@ const QRCodeGenerator = () => {
           <div ref={qrRef} />
         </div>
       </div>
+
+      {/* Customization Grid */}
+      <div className="space-y-6">
+
+      {/* Download */}
       <div className="input-group flex items-end">
         <button 
             onClick={downloadQR}
@@ -101,8 +153,7 @@ const QRCodeGenerator = () => {
             Download QR
         </button>
       </div>
-      {/* Customization Grid */}
-      <div className="space-y-6">
+
         {/* Baris 1: Warna */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="input-group">
@@ -123,6 +174,57 @@ const QRCodeGenerator = () => {
               className="color-input"
             />
           </div>
+        </div>
+
+        {/* Bagian upload logo */}
+        <div className="input-group">
+            <label className="label">Tambah Logo</label>
+            <div className="flex items-center">
+            <input
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                className="file-input"
+                disabled={!!logoPreview}
+                ref={fileInputRef} // Tambahkan ref disini
+            />
+
+                {logoPreview && (
+                <span className="text-space">
+                    success
+                </span>
+                )}
+
+                {logoPreview && (
+                    <button
+                    onClick={removeLogo}
+                    className="absolute top-2 right-2 p-1 bg-red-500 rounded-full hover:bg-red-600 transition-colors z-[999] mr-90 "
+                    title="Hapus Logo"
+                    >
+                    <X size={13} className="text-white" />
+                    </button>
+                )}
+
+            </div>
+                {logoError && (
+                    <p className="text-red-500 text-sm mt-1">{logoError}</p>
+                )}
+        </div>
+        
+        <div className="input-group">
+            <label className="label">Ukuran Logo</label>
+            <select
+                value={options.logoSize}
+                onChange={(e) => setOptions({
+                ...options,
+                logoSize: parseFloat(e.target.value)
+                })}
+                className="select"
+            >
+                <option value={0.1}>Kecil (10%)</option>
+                <option value={0.2}>Sedang (20%)</option>
+                <option value={0.3}>Besar (30%)</option>
+            </select>
         </div>
 
         {/* Baris 2: Bentuk */}
@@ -198,6 +300,8 @@ const QRCodeGenerator = () => {
             />
           </div>
         </div>
+
+        
       </div>
     </div>
   )

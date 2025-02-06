@@ -126,7 +126,7 @@ const QRCodeGenerator = () => {
         <textarea
           value={options.data}
           onChange={(e) => setOptions({...options, data: e.target.value})}
-          placeholder="Masukkan data atau URL disini..."
+          placeholder="Enter data or URL here..."
           className="textarea"
           rows={3}
         />
@@ -157,7 +157,7 @@ const QRCodeGenerator = () => {
         {/* Baris 1: Warna */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="input-group">
-            <label className="label">Warna Latar</label>
+            <label className="label">BG Color</label>
             <input
               type="color"
               value={options.bgColor}
@@ -166,7 +166,7 @@ const QRCodeGenerator = () => {
             />
           </div>
           <div className="input-group">
-            <label className="label">Warna QR</label>
+            <label className="label">Shape Color</label>
             <input
               type="color"
               value={options.qrColor}
@@ -178,7 +178,7 @@ const QRCodeGenerator = () => {
 
         {/* Bagian upload logo */}
         <div className="input-group">
-            <label className="label">Tambah Logo</label>
+            <label className="label">Add Logo</label>
             <div className="flex items-center">
             <input
                 type="file"
@@ -212,7 +212,7 @@ const QRCodeGenerator = () => {
         </div>
         
         <div className="input-group">
-            <label className="label">Ukuran Logo</label>
+            <label className="label">Logo Size</label>
             <select
                 value={options.logoSize}
                 onChange={(e) => setOptions({
@@ -221,16 +221,16 @@ const QRCodeGenerator = () => {
                 })}
                 className="select"
             >
-                <option value={0.1}>Kecil (10%)</option>
-                <option value={0.2}>Sedang (20%)</option>
-                <option value={0.3}>Besar (30%)</option>
+                <option value={0.1}>Small (10%)</option>
+                <option value={0.2}>Medium (20%)</option>
+                <option value={0.3}>Large (30%)</option>
             </select>
         </div>
 
         {/* Baris 2: Bentuk */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="input-group">
-            <label className="label">Bentuk Titik</label>
+            <label className="label">Shape style</label>
             <select
               value={options.dotType}
               onChange={(e) => setOptions({...options, dotType: e.target.value as DotType})}
@@ -244,7 +244,7 @@ const QRCodeGenerator = () => {
             </select>
           </div>
           <div className="input-group">
-            <label className="label">Bentuk Sudut</label>
+            <label className="label">Border style</label>
             <select
               value={options.cornerType}
               onChange={(e) => setOptions({...options, cornerType: e.target.value as CornerType})}
@@ -273,7 +273,7 @@ const QRCodeGenerator = () => {
             </select>
           </div>
           <div className="input-group">
-            <label className="label">Format Gambar</label>
+            <label className="label">File Type</label>
             <select
               value={options.imageFormat}
               onChange={(e) => setOptions({...options, imageFormat: e.target.value as ImageFormat})}
@@ -289,7 +289,7 @@ const QRCodeGenerator = () => {
         {/* Baris 4: Ukuran dan Download */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="input-group">
-            <label className="label">Ukuran Download (px)</label>
+            <label className="label">Dimensions (px)</label>
             <input
               type="number"
               value={options.size}

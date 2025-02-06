@@ -263,7 +263,7 @@ background: var(--primary);
   
   .container {
     margin-top: 12rem;
-    padding: 1rem;
+    padding: 2rem;
   }
   
   .btn {
@@ -291,4 +291,13 @@ background: var(--primary);
   }
   .text-space {
     margin-right: 1rem;
+  }
+
+  @media (max-width: 450px) {
+   
+  .text-space {
+    margin-left: -4rem;
+    padding-right: 0.5rem ;
+  }
+  
   }

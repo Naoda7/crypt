@@ -8,6 +8,7 @@ import Hash from './components/Hash'
 import Hmac from './components/Hmac'
 import Bcrypt from './components/Bcrypt'
 import QRCodeGenerator from './components/QRCodeGenerator'
+import Tools from './components/Tools'
 import './styles/global.css'
 
 const router = createBrowserRouter([
@@ -21,6 +22,7 @@ const router = createBrowserRouter([
       { path: "hmac", element: <Hmac /> },
       { path: "bcrypt", element: <Bcrypt /> },
       { path: "qrcode", element: <QRCodeGenerator /> },
+      { path: "tools", element: <Tools /> }, // Tambahkan route untuk Tools
     ],
   },
 ]);

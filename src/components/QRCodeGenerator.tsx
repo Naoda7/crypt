@@ -186,7 +186,7 @@ const QRCodeGenerator = () => {
                 onChange={handleLogoUpload}
                 className="file-input"
                 disabled={!!logoPreview}
-                ref={fileInputRef} // Tambahkan ref disini
+                ref={fileInputRef}
             />
 
                 {logoPreview && (

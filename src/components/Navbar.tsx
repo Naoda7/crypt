@@ -6,7 +6,7 @@ const Navbar = () => {
       <div className="navbar-content">
         {/* Logo dan Judul */}
         <div className="flex items-center gap-3">
-        <div className="logo w-8 h-8 bg-primary rounded-lg animate-pulse" />
+          <div className="logo w-8 h-8 bg-primary rounded-lg animate-pulse" />
           <h1 className="text-xl font-semibold">CRYPTZ</h1>
         </div>
 
@@ -64,6 +64,16 @@ const Navbar = () => {
             }
           >
             QR CODE
+          </NavLink>
+
+          {/* Tools */}
+          <NavLink 
+            to="/tools"
+            className={({ isActive }) => 
+              `nav-link ${isActive ? 'active' : ''}`
+            }
+          >
+            TOOLS
           </NavLink>
         </div>
       </div>

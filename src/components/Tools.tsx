@@ -10,22 +10,35 @@ const Tools = () => {
       <h2 className="text-center mb-2">Tools</h2>
 
       {/* Pilihan Tools */}
-      <div className="flex justify-center gap-4 mb-8">
+      <div className="button-group">
         <button
           onClick={() => setSelectedTool('watermark')}
-          className={`btn ${selectedTool === 'watermark' ? 'btn-primary' : 'btn-secondary'}`}
+          className={`tool-button ${
+            selectedTool === 'watermark' 
+              ? 'active' 
+              : ''
+          }`}
+          aria-label="Watermark Tools"
         >
+          <span className="button-icon">🖼️</span>
           Images Watermark
         </button>
+        
         <button
           onClick={() => setSelectedTool('convert')}
-          className={`btn ${selectedTool === 'convert' ? 'btn-primary' : 'btn-secondary'}`}
+          className={`tool-button ${
+            selectedTool === 'convert' 
+              ? 'active' 
+              : ''
+          }`}
+          aria-label="Convert Tools"
         >
+          <span className="button-icon">🔄</span>
           Images Convert
         </button>
       </div>
 
-      {/* Render Komponen Berdasarkan Pilihan */}
+      {/* Render Komponen */}
       {selectedTool === 'watermark' ? <WatermarkTools /> : <ConvertTools />}
     </div>
   )

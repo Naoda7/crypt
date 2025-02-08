@@ -8,7 +8,7 @@ const WatermarkTools = () => {
   return (
     <div>
       {/* Pilihan Watermark */}
-      <div className="flex justify-center gap-4 mb-8">
+      <div className="button-group">
         <button
           onClick={() => setSelectedOption('text')}
           className={`btn ${selectedOption === 'text' ? 'btn-primary' : 'btn-secondary'}`}

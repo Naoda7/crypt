@@ -14,11 +14,11 @@ const ConvertTools = () => {
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null)
   const [convertedResults, setConvertedResults] = useState<string[]>([])
   const [selectedResults, setSelectedResults] = useState<number[]>([])
-  const [format, setFormat] = useState<'jpg' | 'png' | 'webp' | 'svg'>('jpg')
+  const [format, setFormat] = useState<'jpg' | 'png' | 'webp' | 'svg' | 'ico'>('jpg')
+  const [icoSize, setIcoSize] = useState<'16' | '24' | '32' | '48' | '64'>('32')
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Handle upload file
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement> | { target: { files: File[] } }) => {
     const newFiles = Array.from(e.target.files || []).map(file => ({
       id: Math.random().toString(36).substr(2, 9),
@@ -30,17 +30,14 @@ const ConvertTools = () => {
     if (!selectedFile) setSelectedFile(newFiles[0])
   }, [selectedFile])
 
-  // Hapus file dari list
   const removeFile = useCallback((id: string) => {
     setFiles(prev => prev.filter(f => f.id !== id))
     if (selectedFile?.id === id) setSelectedFile(files[0] || null)
   }, [files, selectedFile])
 
-  // Konversi file
   const convertFile = useCallback(async (file: File) => {
     return new Promise<string>((resolve, reject) => {
       if (format === 'svg') {
-        // Konversi ke SVG menggunakan Potrace
         const reader = new FileReader()
         reader.onload = (e) => {
           if (e.target?.result) {
@@ -56,7 +53,6 @@ const ConvertTools = () => {
         }
         reader.readAsDataURL(file)
       } else {
-        // Konversi ke format raster (JPG, PNG, WEBP)
         const img = new Image()
         img.src = URL.createObjectURL(file)
 
@@ -64,11 +60,23 @@ const ConvertTools = () => {
           const canvas = document.createElement('canvas')
           const ctx = canvas.getContext('2d')!
 
-          canvas.width = img.width
-          canvas.height = img.height
-          ctx.drawImage(img, 0, 0)
+          if (format === 'ico') {
+            const size = parseInt(icoSize)
+            canvas.width = size
+            canvas.height = size
+          } else {
+            canvas.width = img.width
+            canvas.height = img.height
+          }
 
-          const mimeType = format === 'jpg' ? 'image/jpeg' : `image/${format}`
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+
+          let mimeType = ''
+          if (format === 'ico') {
+            mimeType = 'image/x-icon'
+          } else {
+            mimeType = format === 'jpg' ? 'image/jpeg' : `image/${format}`
+          }
           resolve(canvas.toDataURL(mimeType))
         }
 
@@ -78,9 +86,8 @@ const ConvertTools = () => {
         }
       }
     })
-  }, [format])
+  }, [format, icoSize])
 
-  // Proses semua file
   const processFiles = useCallback(async () => {
     const results = await Promise.all(files.map(async (file) => {
       return convertFile(file.file)
@@ -89,7 +96,6 @@ const ConvertTools = () => {
     setSelectedResults([])
   }, [files, convertFile])
 
-  // Download selected files as ZIP
   const downloadSelected = useCallback(async () => {
     const zip = new JSZip()
     const folder = zip.folder("converted-images")
@@ -99,11 +105,9 @@ const ConvertTools = () => {
       const fileName = `converted-${files[index].name.replace(/\.[^/.]+$/, "")}.${format}`
 
       if (format === 'svg') {
-        // Handle SVG (base64 to plain text)
         const svgContent = atob(result.split(',')[1])
         folder?.file(fileName, svgContent)
       } else {
-        // Handle raster images
         const base64Data = result.split(',')[1]
         folder?.file(fileName, base64Data, { base64: true })
       }
@@ -113,7 +117,6 @@ const ConvertTools = () => {
     saveAs(content, "converted-images.zip")
   }, [selectedResults, convertedResults, files, format])
 
-  // Drag & Drop Handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(true)
@@ -140,7 +143,6 @@ const ConvertTools = () => {
     }
   }, [handleFileUpload])
 
-  // Toggle select/deselect result
   const toggleResultSelection = useCallback((index: number) => {
     setSelectedResults(prev =>
       prev.includes(index)
@@ -149,7 +151,6 @@ const ConvertTools = () => {
     )
   }, [])
 
-  // Select/Deselect all
   const toggleSelectAll = useCallback(() => {
     if (selectedResults.length === convertedResults.length) {
       setSelectedResults([])
@@ -160,13 +161,10 @@ const ConvertTools = () => {
 
   return (
     <div className="space-y-6">
-      {/* Upload Section */}
       <div className="input-group">
         <label className="label">Upload Images</label>
-
-        {/* Drag & Drop Zone */}
         <div
-          className={`drag-drop-zone ${isDragging ? 'dragging' : ''}`}
+          className={`drag-drop-zone ${isDragging ? 'dragging' : ''} mb-2`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
@@ -179,8 +177,6 @@ const ConvertTools = () => {
             <p className="drag-drop-subtext">(Supported formats: PNG, JPG, JPEG)</p>
           </div>
         </div>
-
-        {/* Hidden File Input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -189,11 +185,9 @@ const ConvertTools = () => {
           onChange={handleFileUpload}
           className="hidden-file-input"
         />
-
-        {/* Uploaded Files List */}
         {files.length > 0 && (
-          <div className="mt-4">
-            <h4 className="text-sm font-medium mb-2">Uploaded Files ({files.length})</h4>
+          <div className="mt-2">
+            <h4 className="text-sm font-medium mb-1">Uploaded Files ({files.length})</h4>
             <div className="uploaded-files-container">
               {files.map(file => (
                 <div key={file.id} className="uploaded-file">
@@ -211,36 +205,52 @@ const ConvertTools = () => {
         )}
       </div>
 
-      {/* Conversion Controls */}
       {files.length > 0 && (
         <>
           <div className="input-group">
-            <label className="label">Convert To</label>
+            <h4 className="label mb-1">Convert To</h4>
             <select
               value={format}
-              onChange={(e) => setFormat(e.target.value as 'jpg' | 'png' | 'webp' | 'svg')}
+              onChange={(e) => setFormat(e.target.value as typeof format)}
               className="select"
             >
               <option value="jpg">JPG</option>
               <option value="png">PNG</option>
               <option value="webp">WEBP</option>
               <option value="svg">SVG</option>
+              <option value="ico">ICO</option>
             </select>
           </div>
 
+          {format === 'ico' && (
+            <div className="input-group">
+              <label className="label">ICO Size</label>
+              <select
+                value={icoSize}
+                onChange={(e) => setIcoSize(e.target.value as typeof icoSize)}
+                className="select"
+              >
+                <option value="16">16x16</option>
+                <option value="24">24x24</option>
+                <option value="32">32x32</option>
+                <option value="48">48x48</option>
+                <option value="64">64x64</option>
+              </select>
+            </div>
+          )}
+
           <button
             onClick={processFiles}
-            className="btn btn-primary w-full"
+            className="btn btn-primary w-full mb-3"
           >
             Convert All Files
           </button>
         </>
       )}
 
-      {/* Results Section */}
       {convertedResults.length > 0 && (
         <div className="mt-8">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-2">
             <h3 className="text-lg font-semibold">Converted Results</h3>
             {(selectedResults.length > 0 || selectedResults.length === convertedResults.length) && (
               <button
@@ -254,8 +264,7 @@ const ConvertTools = () => {
             )}
           </div>
 
-          {/* Select All Checkbox */}
-          <div className="flex items-center mb-4">
+          <div className="flex items-center mb-1">
             <input
               type="checkbox"
               checked={selectedResults.length === convertedResults.length}
@@ -265,7 +274,6 @@ const ConvertTools = () => {
             <span className="ml-2 text-sm">Select All</span>
           </div>
 
-          {/* Results Grid */}
           <div className="results-grid">
             {convertedResults.map((result, index) => (
               <div key={index} className="result-item">

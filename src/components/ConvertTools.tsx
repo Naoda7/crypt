@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
 import potrace from 'potrace'
@@ -159,6 +159,11 @@ const ConvertTools = () => {
     }
   }, [selectedResults, convertedResults])
 
+  useEffect(() => {
+    setConvertedResults([])
+    setSelectedResults([])
+  }, [format])
+
   return (
     <div className="space-y-6">
       <div className="input-group">
@@ -218,7 +223,7 @@ const ConvertTools = () => {
               <option value="png">PNG</option>
               <option value="webp">WEBP</option>
               <option value="svg">SVG</option>
-              <option value="ico">ICO</option>
+              <option value="ico">ICO (Not Valid)</option>
             </select>
           </div>
 

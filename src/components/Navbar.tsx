@@ -1,80 +1,50 @@
+import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
+import { Menu, X } from 'lucide-react'
 
 const Navbar = () => {
+  const [isOpen, setIsOpen] = useState(false)
+
+  const toggleMenu = () => setIsOpen(!isOpen)
+
+  const navItems = [
+    { to: "/", label: "ENCRYPT & DECRYPT" },
+    { to: "/hash", label: "HASH" },
+    { to: "/hmac", label: "HMAC" },
+    { to: "/bcrypt", label: "BCRYPT" },
+    { to: "/qrcode", label: "QR CODE" },
+    { to: "/tools", label: "TOOLS" },
+  ]
+
   return (
     <nav className="navbar">
       <div className="navbar-content">
-        {/* Logo dan Judul */}
+
+        {/* Logo & Title */}
         <div className="flex items-center gap-3">
           <div className="logo w-8 h-8 bg-primary rounded-lg animate-pulse" />
-          <h1 className="text-xl font-semibold">CRYPTZ</h1>
+          <h1 className="text-xl font-semibold tracking-tighter">CRYPTZ</h1>
         </div>
 
-        {/* Navigation Links */}
-        <div className="nav-links">
-          <NavLink 
-            to="/" 
-            className={({ isActive }) => 
-              `nav-link ${isActive ? 'active' : ''}`
-            }
-          >
-            ENCRYPT
-          </NavLink>
-          
-          <NavLink 
-            to="/decrypt" 
-            className={({ isActive }) => 
-              `nav-link ${isActive ? 'active' : ''}`
-            }
-          >
-            DECRYPT
-          </NavLink>
-          
-          <NavLink 
-            to="/hash"
-            className={({ isActive }) => 
-              `nav-link ${isActive ? 'active' : ''}`
-            }
-          >
-            HASH
-          </NavLink>
-          
-          <NavLink 
-            to="/hmac"
-            className={({ isActive }) => 
-              `nav-link ${isActive ? 'active' : ''}`
-            }
-          >
-            HMAC
-          </NavLink>
-          
-          <NavLink 
-            to="/bcrypt"
-            className={({ isActive }) => 
-              `nav-link ${isActive ? 'active' : ''}`
-            }
-          >
-            BCRYPT
-          </NavLink>
-          
-          <NavLink 
-            to="/qrcode"
-            className={({ isActive }) => 
-              `nav-link ${isActive ? 'active' : ''}`
-            }
-          >
-            QR CODE
-          </NavLink>
+        {/* Hamburger Button (Mobile) */}
+        <button className="mobile-menu-btn" onClick={toggleMenu} aria-label="Toggle Menu">
+          {isOpen ? <X size={28} /> : <Menu size={28} />}
+        </button>
 
-          {/* Tools */}
-          <NavLink 
-            to="/tools"
-            className={({ isActive }) => 
-              `nav-link ${isActive ? 'active' : ''}`
-            }
-          >
-            TOOLS
-          </NavLink>
+        {/* Navigation Links */}
+        <div className={`nav-links ${isOpen ? 'open' : ''}`}>
+          {navItems.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              onClick={() => setIsOpen(false)}
+              className={({ isActive }) =>
+                `nav-link ${isActive ? 'active' : ''}`
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
         </div>
       </div>
     </nav>

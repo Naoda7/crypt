@@ -36,7 +36,7 @@ const Bcrypt = () => {
 
   return (
     <div className="container">
-      <h2 className="text-center mb-2">Bcrypt Hash Generator</h2>
+      <h1 className="text-center mb-2">Bcrypt Hash Generator</h1>
 
       <div className="input-group">
         <select

@@ -16,20 +16,32 @@ const WatermarkText = () => {
   const [text, setText] = useState('')
   const [fontColor, setFontColor] = useState('#000000')
   const [fontSize, setFontSize] = useState(24)
+  const [fontFamily, setFontFamily] = useState('Arial')
+  const [isBold, setIsBold] = useState(false) // State Tebal
+  const [isItalic, setIsItalic] = useState(false) // State Miring
   const [opacity, setOpacity] = useState(0.5)
   const [position, setPosition] = useState('center')
   const [isDragging, setIsDragging] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const fontOptions = [
+    { name: 'Sans Serif (Arial)', value: 'Arial' },
+    { name: 'Serif (Times New Roman)', value: 'Times New Roman' },
+    { name: 'Monospace (Courier New)', value: 'Courier New' },
+    { name: 'Modern (Geist)', value: 'Geist, sans-serif' },
+    { name: 'Bold Impact', value: 'Impact' },
+    { name: 'Handwritten (Brush Script MT)', value: 'Brush Script MT, cursive' },
+  ];
+
   const getTextPosition = useCallback((imgWidth: number, imgHeight: number, textWidth: number) => {
     switch(position) {
-      case 'top-left': return { x: 10, y: 30 }
-      case 'top-right': return { x: imgWidth - textWidth - 10, y: 30 }
+      case 'top-left': return { x: 10, y: 40 }
+      case 'top-right': return { x: imgWidth - textWidth - 10, y: 40 }
       case 'center': return { x: imgWidth/2 - textWidth/2, y: imgHeight/2 }
       case 'bottom-left': return { x: 10, y: imgHeight - 30 }
       case 'bottom-right': return { x: imgWidth - textWidth - 10, y: imgHeight - 30 }
-      default: return { x: 10, y: 30 }
+      default: return { x: 10, y: 40 }
     }
   }, [position])
 
@@ -59,7 +71,11 @@ const WatermarkText = () => {
         canvas.height = img.height
         ctx.drawImage(img, 0, 0)
         if (text) {
-          ctx.font = `${fontSize}px Arial`
+          // Mengatur Style Font (Italic Bold Size Family)
+          const fontWeight = isBold ? 'bold' : 'normal'
+          const fontStyle = isItalic ? 'italic' : ''
+          ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`
+          
           ctx.fillStyle = fontColor
           ctx.globalAlpha = opacity
           const textWidth = ctx.measureText(text).width
@@ -69,7 +85,7 @@ const WatermarkText = () => {
         resolve(canvas.toDataURL())
       }
     })
-  }, [text, fontColor, fontSize, opacity, getTextPosition])
+  }, [text, fontColor, fontSize, fontFamily, isBold, isItalic, opacity, getTextPosition])
 
   const processFiles = useCallback(async () => {
     const results = await Promise.all(files.map(async (file) => {
@@ -136,13 +152,17 @@ const WatermarkText = () => {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    const files = Array.from(e.dataTransfer.files)
-    if (files.length > 0) {
-      handleFileUpload({ 
-        target: { files } 
-      } as unknown as React.ChangeEvent<HTMLInputElement>)
+    const droppedFiles = Array.from(e.dataTransfer.files)
+    if (droppedFiles.length > 0) {
+      const newFiles = droppedFiles.map(file => ({
+        id: Math.random().toString(36).substr(2, 9),
+        name: file.name,
+        file: file
+      }))
+      setFiles(prev => [...prev, ...newFiles])
+      if (!selectedFile) setSelectedFile(newFiles[0])
     }
-  }, [handleFileUpload])
+  }, [selectedFile])
 
   return (
     <div className="space-y-6">
@@ -150,7 +170,6 @@ const WatermarkText = () => {
       <div className="input-group">
         <label className="label">Upload Images</label>
         
-        {/* Drag & Drop Zone */}
         <div 
           className={`drag-drop-zone ${isDragging ? 'dragging' : ''}`}
           onDragOver={handleDragOver}
@@ -166,7 +185,6 @@ const WatermarkText = () => {
           </div>
         </div>
 
-        {/* Hidden File Input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -176,7 +194,6 @@ const WatermarkText = () => {
           className="hidden-file-input"
         />
 
-        {/* Uploaded Files List */}
         {files.length > 0 && (
           <div className="uploaded-files-wrapper">
             <h4 className="uploaded-files-title">Selected Files ({files.length})</h4>
@@ -185,7 +202,7 @@ const WatermarkText = () => {
                 <div key={file.id} className="uploaded-file-item">
                   <span className="file-name">{file.name}</span>
                   <button
-                    onClick={() => removeFile(file.id)}
+                    onClick={(e) => { e.stopPropagation(); removeFile(file.id); }}
                     className="remove-file-btn"
                   >
                     ×
@@ -200,13 +217,13 @@ const WatermarkText = () => {
       {/* Watermark Controls */}
       {files.length > 0 && (
         <>
-        <div className="input-group">
-            <label className="label">Live Preview</label>
-            <div className="preview-container">
-                <canvas ref={canvasRef} className="preview-canvas" />
-            </div>
-        </div>
-        
+          <div className="input-group">
+              <label className="label">Live Preview</label>
+              <div className="preview-container">
+                  <canvas ref={canvasRef} className="preview-canvas" />
+              </div>
+          </div>
+          
           <div className="input-group">
             <label className="label">Watermark Text</label>
             <input
@@ -216,6 +233,45 @@ const WatermarkText = () => {
               className="input"
               placeholder="Enter watermark text..."
             />
+          </div>
+
+          <div className="input-group">
+            <label className="label">Font Family</label>
+            <select
+              value={fontFamily}
+              onChange={(e) => setFontFamily(e.target.value)}
+              className="select"
+              style={{ fontFamily: fontFamily }}
+            >
+              {fontOptions.map((f) => (
+                <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Weight*/}
+          <div className="input-group">
+            <label className="label">Font Style</label>
+            <div style={{ display: 'flex', gap: '12px' }}> {/* Menambahkan gap manual yang pasti bekerja */}
+              <button 
+                type="button"
+                className={`btn ${isBold ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ flex: 1, justifyContent: 'center' }}
+                onClick={() => setIsBold(!isBold)}
+              >
+                <span style={{ fontWeight: 'bold' }}>B</span> &nbsp; Bold
+              </button>
+              <button 
+                type="button"
+                className={`btn ${isItalic ? 'btn-primary' : 'btn-secondary'}`}
+                style={{ flex: 1, justifyContent: 'center' }}
+                onClick={() => setIsItalic(!isItalic)}
+              >
+                <span style={{ fontStyle: 'italic', fontFamily: 'serif' }}>I</span> &nbsp; Italic
+              </button>
+            </div>
           </div>
 
           <div className="input-group">
@@ -229,19 +285,19 @@ const WatermarkText = () => {
           </div>
 
           <div className="input-group">
-            <label className="label">Font Size</label>
+            <label className="label">Font Size ({fontSize}px)</label>
             <input
               type="number"
               value={fontSize}
-              onChange={(e) => setFontSize(parseInt(e.target.value))}
+              onChange={(e) => setFontSize(parseInt(e.target.value) || 0)}
               className="input"
               min="10"
-              max="100"
+              max="200"
             />
           </div>
 
           <div className="input-group">
-            <label className="label">Opacity</label>
+            <label className="label">Opacity ({Math.round(opacity * 100)}%)</label>
             <input
               type="range"
               value={opacity}
@@ -249,7 +305,7 @@ const WatermarkText = () => {
               className="input"
               min="0"
               max="1"
-              step="0.1"
+              step="0.05"
             />
           </div>
 
@@ -274,7 +330,6 @@ const WatermarkText = () => {
           >
             Process All Files
           </button>
-          
         </>
       )}
 
@@ -296,18 +351,16 @@ const WatermarkText = () => {
             )}
             </div>
 
-          {/* Select All Checkbox */}
           <div className="flex items-center mb-4">
             <input
               type="checkbox"
-              checked={selectedResults.length === watermarkedResults.length}
+              checked={selectedResults.length === watermarkedResults.length && watermarkedResults.length > 0}
               onChange={toggleSelectAll}
               className="result-checkbox"
             />
             <span className="ml-2 text-sm">Select All</span>
           </div>
 
-          {/* Results Grid */}
           <div className="results-grid">
             {watermarkedResults.map((result, index) => (
               <div key={index} className="result-item">

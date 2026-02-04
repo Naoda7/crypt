@@ -2,8 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import App from './App'
-import Encrypt from './components/Encrypt'
-import Decrypt from './components/Decrypt'
+import CryptoPage from './components/Crypto/CryptoPage' 
 import Hash from './components/Hash'
 import Hmac from './components/Hmac'
 import Bcrypt from './components/Bcrypt'
@@ -16,13 +15,13 @@ const router = createBrowserRouter([
     path: "/",
     element: <App />,
     children: [
-      { index: true, element: <Encrypt /> },
-      { path: "decrypt", element: <Decrypt /> },
+      { index: true, element: <CryptoPage /> }, 
+      
       { path: "hash", element: <Hash /> },
       { path: "hmac", element: <Hmac /> },
       { path: "bcrypt", element: <Bcrypt /> },
       { path: "qrcode", element: <QRCodeGenerator /> },
-      { path: "tools", element: <Tools /> }, // Tambahkan route untuk Tools
+      { path: "tools", element: <Tools /> },
     ],
   },
 ]);

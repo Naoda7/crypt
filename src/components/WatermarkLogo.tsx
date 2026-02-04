@@ -57,9 +57,12 @@ const WatermarkLogo = () => {
   }, [])
 
   const removeFile = useCallback((id: string) => {
-    setFiles(prev => prev.filter(f => f.id !== id))
-    if (selectedFile?.id === id) setSelectedFile(files[0] || null)
-  }, [selectedFile, files])
+    setFiles(prev => {
+      const updatedFiles = prev.filter(f => f.id !== id)
+      if (selectedFile?.id === id) setSelectedFile(updatedFiles[0] || null)
+      return updatedFiles
+    })
+  }, [selectedFile])
 
   const generatePreview = useCallback(async (file: File) => {
     return new Promise<string>((resolve) => {
@@ -103,11 +106,13 @@ const WatermarkLogo = () => {
         const img = new Image()
         img.src = preview
         img.onload = () => {
-          const canvas = canvasRef.current!
-          const ctx = canvas.getContext('2d')!
-          canvas.width = img.width
-          canvas.height = img.height
-          ctx.drawImage(img, 0, 0)
+          if (canvasRef.current) {
+            const canvas = canvasRef.current
+            const ctx = canvas.getContext('2d')!
+            canvas.width = img.width
+            canvas.height = img.height
+            ctx.drawImage(img, 0, 0)
+          }
         }
       })
     }
@@ -154,21 +159,19 @@ const WatermarkLogo = () => {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    const files = Array.from(e.dataTransfer.files)
-    if (files.length > 0) {
+    const droppedFiles = Array.from(e.dataTransfer.files)
+    if (droppedFiles.length > 0) {
       handleFileUpload({ 
-        target: { files } 
+        target: { files: e.dataTransfer.files } 
       } as unknown as React.ChangeEvent<HTMLInputElement>)
     }
   }, [handleFileUpload])
 
   return (
     <div className="space-y-6">
-      {/* Upload Section */}
+      {/* 1. Upload Images (Selalu Muncul) */}
       <div className="input-group">
         <label className="label">Upload Images</label>
-        
-        {/* Drag & Drop Zone */}
         <div 
           className={`drag-drop-zone ${isDragging ? 'dragging' : ''}`}
           onDragOver={handleDragOver}
@@ -184,7 +187,6 @@ const WatermarkLogo = () => {
           </div>
         </div>
 
-        {/* Hidden File Input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -194,7 +196,6 @@ const WatermarkLogo = () => {
           className="hidden-file-input"
         />
 
-        {/* Uploaded Files List */}
         {files.length > 0 && (
           <div className="uploaded-files-wrapper">
             <h4 className="uploaded-files-title">Selected Files ({files.length})</h4>
@@ -215,39 +216,51 @@ const WatermarkLogo = () => {
         )}
       </div>
 
-      {/* Logo Upload Section */}
-      <div className="input-group">
-        <label className="label">Upload Watermark Logo</label>
-        <div 
-          className={`drag-drop-zone ${isDragging ? 'dragging' : ''}`}
-          onClick={() => logoInputRef.current?.click()}
-        >
-          <div className="drag-drop-content">
-            {logoPreview ? (
-              <img src={logoPreview} alt="Logo Preview" className="logo-preview" />
-            ) : (
-              <p className="drag-drop-text">Click to upload logo</p>
-            )}
+      {/* 2. Upload Logo (Hanya muncul jika sudah ada gambar yang diupload) */}
+      {files.length > 0 && (
+        <div className="input-group">
+          <label className="label">Upload Watermark Logo</label>
+          <div 
+            className="drag-drop-zone"
+            onClick={() => logoInputRef.current?.click()}
+            style={{ minHeight: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+          >
+            <div className="drag-drop-content" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+              {logoPreview ? (
+                <img 
+                  src={logoPreview} 
+                  alt="Logo Preview" 
+                  style={{ 
+                    maxWidth: '100px', 
+                    maxHeight: '100px', 
+                    objectFit: 'contain',
+                    borderRadius: '4px' 
+                  }} 
+                />
+              ) : (
+                <p className="drag-drop-text">Click to upload logo</p>
+              )}
+            </div>
           </div>
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleLogoUpload}
+            className="hidden-file-input"
+          />
         </div>
-        <input
-          ref={logoInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleLogoUpload}
-          className="hidden-file-input"
-        />
-      </div>
+      )}
 
-      {/* Watermark Controls */}
+      {/* 3. Controls & Preview (Hanya muncul jika gambar & logo sudah ada) */}
       {files.length > 0 && logoPreview && (
         <>
-        <div className="input-group">
+          <div className="input-group">
             <label className="label">Live Preview</label>
             <div className="preview-container">
                 <canvas ref={canvasRef} className="preview-canvas" />
             </div>
-        </div>
+          </div>
 
           <div className="input-group">
             <label className="label">Logo Size</label>
@@ -299,14 +312,12 @@ const WatermarkLogo = () => {
         </>
       )}
 
-      {/* Results Section */}
+      {/* 4. Results Section */}
       {watermarkedResults.length > 0 && (
         <div className="mt-8">
-            <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Processed Results</h3>
-            
-            {/* Perubahan di sini */}
-            {(selectedResults.length > 0 || selectedResults.length === watermarkedResults.length) && (
+            {selectedResults.length > 0 && (
                 <button
                 onClick={downloadSelected}
                 className="btn btn-secondary"
@@ -316,9 +327,8 @@ const WatermarkLogo = () => {
                     : `Download Selected (${selectedResults.length}) as ZIP`}
                 </button>
             )}
-            </div>
+          </div>
 
-          {/* Select All Checkbox */}
           <div className="flex items-center mb-4">
             <input
               type="checkbox"
@@ -329,7 +339,6 @@ const WatermarkLogo = () => {
             <span className="ml-2 text-sm">Select All</span>
           </div>
 
-          {/* Results Grid */}
           <div className="results-grid">
             {watermarkedResults.map((result, index) => (
               <div key={index} className="result-item">

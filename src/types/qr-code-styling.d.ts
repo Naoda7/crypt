@@ -1,23 +1,28 @@
 declare module 'qr-code-styling' {
     type ErrorCorrectionLevel = 'L' | 'M' | 'Q' | 'H'
-    type DotType = 'square' | 'dots' | 'rounded' | 'classy' | 'classy-rounded'
-    type CornerSquareType = 'square' | 'dot' | 'rounded'
+    type DotType = 'square' | 'dots' | 'rounded' | 'classy' | 'classy-rounded' | 'extra-rounded'
+    type CornerSquareType = 'square' | 'dot' | 'rounded' | 'extra-rounded'
     type CornerDotType = 'square' | 'dot'
     type Extension = 'png' | 'jpeg' | 'svg'
     type GradientType = 'linear' | 'radial'
-  
+    type DrawType = 'canvas' | 'svg'
+
     interface QRCodeOptions {
+      type?: DrawType
       width?: number
       height?: number
       data: string
       margin?: number
       qrOptions?: {
+        typeNumber?: number
+        mode?: string
         errorCorrectionLevel?: ErrorCorrectionLevel
       }
       imageOptions?: {
         hideBackgroundDots?: boolean
         imageSize?: number
         margin?: number
+        crossOrigin?: string
       }
       dotsOptions?: {
         color?: string
@@ -56,12 +61,12 @@ declare module 'qr-code-styling' {
       }
       image?: string
     }
-  
+
     interface DownloadOptions {
       name?: string
       extension?: Extension
     }
-  
+
     class QRCodeStyling {
       constructor(options: QRCodeOptions)
       update(options: QRCodeOptions): void
@@ -69,6 +74,6 @@ declare module 'qr-code-styling' {
       append(container: HTMLElement): void
       getCanvas(): Promise<HTMLCanvasElement>
     }
-  
+
     export default QRCodeStyling
-  }
+}

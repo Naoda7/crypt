@@ -31,7 +31,7 @@ const Hash = () => {
 
   return (
     <div className="container">
-      <h2 className="text-center mb-2">Generate Hash</h2>
+      <h1 className="text-center mb-2">Generate Hash</h1>
 
       <div className="input-group">
         <select

@@ -7,24 +7,29 @@ const WatermarkTools = () => {
 
   return (
     <div>
-      {/* Pilihan Watermark */}
       <div className="button-group">
         <button
           onClick={() => setSelectedOption('text')}
-          className={`btn ${selectedOption === 'text' ? 'btn-primary' : 'btn-secondary'}`}
+          className={`tool-button ${selectedOption === 'text' ? 'active' : ''}`}
+          type="button"
         >
-          Watermark with Text
+          <span className="button-icon">Aa</span>
+          Text Watermark
         </button>
+
         <button
           onClick={() => setSelectedOption('logo')}
-          className={`btn ${selectedOption === 'logo' ? 'btn-primary' : 'btn-secondary'}`}
+          className={`tool-button ${selectedOption === 'logo' ? 'active' : ''}`}
+          type="button"
         >
-          Watermark with Logo
+          <span className="button-icon">🖼️</span>
+          Logo Watermark
         </button>
       </div>
 
-      {/* Render Komponen Berdasarkan Pilihan */}
-      {selectedOption === 'text' ? <WatermarkText /> : <WatermarkLogo />}
+      <div className="tool-content">
+        {selectedOption === 'text' ? <WatermarkText /> : <WatermarkLogo />}
+      </div>
     </div>
   )
 }

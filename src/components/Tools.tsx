@@ -7,38 +7,32 @@ const Tools = () => {
 
   return (
     <div className="container">
-      <h2 className="text-center mb-2">Tools</h2>
+      <h1 className="text-center mb-2">Tools</h1>
 
-      {/* Pilihan Tools */}
-      <div className="button-group">
-        <button
-          onClick={() => setSelectedTool('watermark')}
-          className={`tool-button ${
-            selectedTool === 'watermark' 
-              ? 'active' 
-              : ''
-          }`}
-          aria-label="Watermark Tools"
-        >
-          <span className="button-icon">🖼️</span>
-          Images Watermark
-        </button>
-        
-        <button
-          onClick={() => setSelectedTool('convert')}
-          className={`tool-button ${
-            selectedTool === 'convert' 
-              ? 'active' 
-              : ''
-          }`}
-          aria-label="Convert Tools"
-        >
-          <span className="button-icon">🔄</span>
-          Images Convert
-        </button>
+      <div className="tab-nav-container">
+        <div className="tab-nav-wrapper">
+          <div className={`tab-slider ${selectedTool}`}></div>
+          
+          <button
+            onClick={() => setSelectedTool('watermark')}
+            className={`tab-item ${selectedTool === 'watermark' ? 'active' : ''}`}
+            aria-label="Watermark Tools"
+          >
+            <span className="button-icon">🖼️</span>
+            Images Watermark
+          </button>
+          
+          <button
+            onClick={() => setSelectedTool('convert')}
+            className={`tab-item ${selectedTool === 'convert' ? 'active' : ''}`}
+            aria-label="Convert Tools"
+          >
+            <span className="button-icon">🔄</span>
+            Images Convert
+          </button>
+        </div>
       </div>
 
-      {/* Render Komponen */}
       {selectedTool === 'watermark' ? <WatermarkTools /> : <ConvertTools />}
     </div>
   )

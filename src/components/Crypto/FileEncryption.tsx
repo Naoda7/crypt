@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, ChangeEvent, DragEvent, useEffect } from 'react'
-import { Upload, ShieldCheck, Download, Trash2, File as FileIcon, Loader2, CheckCircle2, Archive, X } from 'lucide-react'
+import { UploadCloud, ShieldCheck, Download, Trash2, File as FileIcon, Loader2, CheckCircle2, Archive, X } from 'lucide-react'
 import JSZip from 'jszip'
 
 interface FileItem {
@@ -332,9 +332,14 @@ const FileEncryption = () => {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
+          style={{ 
+            border: '2px dashed #27272a'
+          }}
         >
-          <div className="drag-drop-content">
-            <Upload size={32} className="mb-2" style={{ margin: '0 auto', color: 'var(--text-secondary)' }} />
+          <div className="drag-drop-content flex flex-col items-center gap-3">
+            <div style={{ background: '#18181b', padding: '12px', borderRadius: '50%', border: '1px solid #27272a' }}>
+              <UploadCloud size={28} className={isDragging ? 'text-white' : 'text-zinc-500'} />
+            </div>
             <p className="drag-drop-text">
               {isDragging ? 'Drop files here' : 'Drag & drop files or click to select'}
             </p>

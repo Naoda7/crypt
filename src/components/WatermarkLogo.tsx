@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
+import { UploadCloud, X, Image as ImageIcon } from 'lucide-react'
 
 interface FileItem {
   id: string
@@ -18,29 +19,37 @@ const WatermarkLogo = () => {
   const [opacity, setOpacity] = useState(0.5)
   const [position, setPosition] = useState('center')
   const [isDragging, setIsDragging] = useState(false)
+  
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const logoInputRef = useRef<HTMLInputElement>(null)
 
   const getLogoPosition = useCallback((imgWidth: number, imgHeight: number, logoWidth: number, logoHeight: number) => {
+    const margin = 20
     switch(position) {
-      case 'top-left': return { x: 10, y: 10 }
-      case 'top-right': return { x: imgWidth - logoWidth - 10, y: 10 }
-      case 'center': return { x: imgWidth/2 - logoWidth/2, y: imgHeight/2 - logoHeight/2 }
-      case 'bottom-left': return { x: 10, y: imgHeight - logoHeight - 10 }
-      case 'bottom-right': return { x: imgWidth - logoWidth - 10, y: imgHeight - logoHeight - 10 }
-      default: return { x: 10, y: 10 }
+      case 'top-left': 
+        return { x: margin, y: margin }
+      case 'top-right': 
+        return { x: imgWidth - logoWidth - margin, y: margin }
+      case 'center': 
+        return { x: (imgWidth - logoWidth) / 2, y: (imgHeight - logoHeight) / 2 }
+      case 'bottom-left': 
+        return { x: margin, y: imgHeight - logoHeight - margin }
+      case 'bottom-right': 
+        return { x: imgWidth - logoWidth - margin, y: imgHeight - logoHeight - margin }
+      default: 
+        return { x: margin, y: margin }
     }
   }, [position])
 
-  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement> | { target: { files: FileList | null } }) => {
     const newFiles = Array.from(e.target.files || []).map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       name: file.name,
       file: file
     }))
     setFiles(prev => [...prev, ...newFiles])
-    if (!selectedFile) setSelectedFile(newFiles[0])
+    if (!selectedFile && newFiles.length > 0) setSelectedFile(newFiles[0])
   }, [selectedFile])
 
   const handleLogoUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,13 +83,17 @@ const WatermarkLogo = () => {
         canvas.width = img.width
         canvas.height = img.height
         ctx.drawImage(img, 0, 0)
+        
         if (logoPreview) {
           const logoImg = new Image()
           logoImg.src = logoPreview
           logoImg.onload = () => {
-            const logoWidth = logoImg.width * logoSize
-            const logoHeight = logoImg.height * logoSize
+            const scaleFactor = (img.width * logoSize) / logoImg.width
+            const logoWidth = logoImg.width * scaleFactor
+            const logoHeight = logoImg.height * scaleFactor
+
             const { x, y } = getLogoPosition(img.width, img.height, logoWidth, logoHeight)
+            
             ctx.globalAlpha = opacity
             ctx.drawImage(logoImg, x, y, logoWidth, logoHeight)
             resolve(canvas.toDataURL())
@@ -101,7 +114,7 @@ const WatermarkLogo = () => {
   }, [files, generatePreview])
 
   useEffect(() => {
-    if (selectedFile && logoPreview) {
+    if (selectedFile) {
       generatePreview(selectedFile.file).then((preview) => {
         const img = new Image()
         img.src = preview
@@ -135,15 +148,15 @@ const WatermarkLogo = () => {
 
   const downloadSelected = useCallback(async () => {
     const zip = new JSZip()
-    const folder = zip.folder("WMImg")
+    const folder = zip.folder("Watermarked_Images")
     selectedResults.forEach(index => {
       const result = watermarkedResults[index]
-      const fileName = `watermarked-${files[index].name}`
+      const fileName = `wm-${files[index].name}`
       const base64Data = result.split(',')[1]
       folder?.file(fileName, base64Data, { base64: true })
     })
     const content = await zip.generateAsync({ type: "blob" })
-    saveAs(content, "WM-images.zip")
+    saveAs(content, "watermarked-collection.zip")
   }, [selectedResults, watermarkedResults, files])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -159,17 +172,14 @@ const WatermarkLogo = () => {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    const droppedFiles = Array.from(e.dataTransfer.files)
+    const droppedFiles = e.dataTransfer.files
     if (droppedFiles.length > 0) {
-      handleFileUpload({ 
-        target: { files: e.dataTransfer.files } 
-      } as unknown as React.ChangeEvent<HTMLInputElement>)
+      handleFileUpload({ target: { files: droppedFiles } })
     }
   }, [handleFileUpload])
 
   return (
     <div className="space-y-6">
-      {/* 1. Upload Images (Selalu Muncul) */}
       <div className="input-group">
         <label className="label">Upload Images</label>
         <div 
@@ -178,12 +188,26 @@ const WatermarkLogo = () => {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
+          style={{ 
+            cursor: 'pointer',
+            border: '2px dashed #27272a',
+            borderRadius: '16px',
+            padding: '48px 24px',
+            textAlign: 'center',
+            transition: 'all 0.2s ease',
+            background: isDragging ? '#18181b' : 'transparent'
+          }}
         >
-          <div className="drag-drop-content">
-            <p className="drag-drop-text">
-              {isDragging ? '🎉 Drop files here' : '📁 Drag & drop files or click to select'}
-            </p>
-            <p className="drag-drop-subtext">(Supported formats: PNG, JPG, JPEG)</p>
+          <div className="drag-drop-content flex flex-col items-center gap-3">
+            <div style={{ background: '#18181b', padding: '12px', borderRadius: '50%', border: '1px solid #27272a' }}>
+              <UploadCloud size={28} className={isDragging ? 'text-white' : 'text-zinc-500'} />
+            </div>
+            <div>
+              <p className="drag-drop-text font-semibold">
+                {isDragging ? 'Drop to upload' : 'Click or drag images here'}
+              </p>
+              <p className="drag-drop-subtext text-xs text-zinc-500 mt-1">(Supports: PNG, JPG, JPEG)</p>
+            </div>
           </div>
         </div>
 
@@ -193,21 +217,22 @@ const WatermarkLogo = () => {
           multiple
           accept="image/*"
           onChange={handleFileUpload}
-          className="hidden-file-input"
+          style={{ display: 'none' }}
         />
 
         {files.length > 0 && (
-          <div className="uploaded-files-wrapper">
-            <h4 className="uploaded-files-title">Selected Files ({files.length})</h4>
-            <div className="uploaded-files-list">
-              {files.map(file => (
-                <div key={file.id} className="uploaded-file-item">
-                  <span className="file-name">{file.name}</span>
-                  <button
-                    onClick={() => removeFile(file.id)}
-                    className="remove-file-btn"
+          <div className="uploaded-list" style={{ marginBottom: '24px', marginTop: '16px' }}>
+            <div style={{ maxHeight: '150px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }} className="custom-scrollbar">
+              {files.map(f => (
+                <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', background: '#18181b', padding: '10px 14px', borderRadius: '10px', border: '1px solid #27272a', gap: '12px' }}>
+                  <span style={{ color: '#e4e4e7', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                    {f.name}
+                  </span>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); removeFile(f.id); }} 
+                    style={{ color: '#71717a', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexShrink: 0 }}
                   >
-                    ×
+                    <X size={14} />
                   </button>
                 </div>
               ))}
@@ -216,29 +241,42 @@ const WatermarkLogo = () => {
         )}
       </div>
 
-      {/* 2. Upload Logo (Hanya muncul jika sudah ada gambar yang diupload) */}
       {files.length > 0 && (
         <div className="input-group">
-          <label className="label">Upload Watermark Logo</label>
+          <label className="label text-zinc-500 text-[10px] uppercase font-bold tracking-wider mb-2">Watermark Logo</label>
           <div 
-            className="drag-drop-zone"
             onClick={() => logoInputRef.current?.click()}
-            style={{ minHeight: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
+            style={{ 
+              height: '48px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              border: '1px solid #27272a',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              background: '#111',
+              padding: '0 12px',
+              transition: 'border-color 0.2s ease'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.borderColor = '#3f3f46'}
+            onMouseOut={(e) => e.currentTarget.style.borderColor = '#27272a'}
           >
-            <div className="drag-drop-content" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-              {logoPreview ? (
-                <img 
-                  src={logoPreview} 
-                  alt="Logo Preview" 
-                  style={{ 
-                    maxWidth: '100px', 
-                    maxHeight: '100px', 
-                    objectFit: 'contain',
-                    borderRadius: '4px' 
-                  }} 
-                />
-              ) : (
-                <p className="drag-drop-text">Click to upload logo</p>
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3 overflow-hidden">
+                <div style={{ background: '#18181b', padding: '6px', borderRadius: '6px', border: '1px solid #27272a', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '32px', height: '32px', flexShrink: 0 }}>
+                  {logoPreview ? (
+                    <img src={logoPreview} alt="Logo" className="w-full h-full object-contain" />
+                  ) : (
+                    <ImageIcon size={16} className="text-zinc-500" />
+                  )}
+                </div>
+                <p className="text-xs text-zinc-400 font-medium truncate">
+                  {logoPreview ? "Logo loaded (Click to change)" : "Click to upload watermark logo"}
+                </p>
+              </div>
+              {logoPreview && (
+                <div className="text-[10px] text-zinc-500 bg-zinc-800 px-2 py-1 rounded font-bold uppercase ml-2 flex-shrink-0">
+                  Replace
+                </div>
               )}
             </div>
           </div>
@@ -247,45 +285,80 @@ const WatermarkLogo = () => {
             type="file"
             accept="image/*"
             onChange={handleLogoUpload}
-            className="hidden-file-input"
+            style={{ display: 'none' }}
           />
         </div>
       )}
 
-      {/* 3. Controls & Preview (Hanya muncul jika gambar & logo sudah ada) */}
-      {files.length > 0 && logoPreview && (
+      {files.length > 0 && (
         <>
-          <div className="input-group">
+          <div 
+            className="input-group"
+            style={{ 
+              position: 'sticky', 
+              top: '4rem', 
+              zIndex: 40, 
+              background: '#09090b', 
+              paddingTop: '10px',
+              paddingBottom: '16px'
+            }}
+          >
             <label className="label">Live Preview</label>
-            <div className="preview-container">
-                <canvas ref={canvasRef} className="preview-canvas" />
+            <div 
+              className="preview-container"
+              style={{
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.4)',
+                border: '1px solid #27272a',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                maxHeight: '200px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                background: '#111'
+              }}
+            >
+              <canvas 
+                ref={canvasRef} 
+                className="preview-canvas" 
+                style={{ 
+                  display: 'block',
+                  maxWidth: '100%',
+                  maxHeight: '200px',
+                  width: 'auto',
+                  height: 'auto',
+                  objectFit: 'contain'
+                }} 
+              />
             </div>
           </div>
 
-          <div className="input-group">
-            <label className="label">Logo Size</label>
-            <input
-              type="range"
-              value={logoSize}
-              onChange={(e) => setLogoSize(parseFloat(e.target.value))}
-              min="0.1"
-              max="0.5"
-              step="0.05"
-              className="input"
-            />
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="input-group">
+              <label className="label">Logo Size ({Math.round(logoSize * 100)}%)</label>
+              <input
+                type="range"
+                value={logoSize}
+                onChange={(e) => setLogoSize(parseFloat(e.target.value))}
+                min="0.05"
+                max="0.8"
+                step="0.01"
+                className="input"
+              />
+            </div>
 
-          <div className="input-group">
-            <label className="label">Opacity</label>
-            <input
-              type="range"
-              value={opacity}
-              onChange={(e) => setOpacity(parseFloat(e.target.value))}
-              min="0"
-              max="1"
-              step="0.1"
-              className="input"
-            />
+            <div className="input-group">
+              <label className="label">Opacity ({Math.round(opacity * 100)}%)</label>
+              <input
+                type="range"
+                value={opacity}
+                onChange={(e) => setOpacity(parseFloat(e.target.value))}
+                min="0"
+                max="1"
+                step="0.1"
+                className="input"
+              />
+            </div>
           </div>
 
           <div className="input-group">
@@ -305,64 +378,64 @@ const WatermarkLogo = () => {
 
           <button
             onClick={processFiles}
-            className="btn btn-primary w-full"
+            className="btn btn-primary w-full py-4 font-semibold shadow-lg shadow-blue-500/10"
           >
             Process All Files
           </button>
         </>
       )}
 
-      {/* 4. Results Section */}
       {watermarkedResults.length > 0 && (
-        <div className="mt-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Processed Results</h3>
+        <div className="mt-12 pt-8 border-t border-zinc-800">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold text-white">Processed Results</h3>
             {selectedResults.length > 0 && (
                 <button
                 onClick={downloadSelected}
-                className="btn btn-secondary"
+                className="btn btn-secondary px-6"
                 >
                 {selectedResults.length === watermarkedResults.length
-                    ? 'Download All as ZIP'
-                    : `Download Selected (${selectedResults.length}) as ZIP`}
+                    ? 'Download All (ZIP)'
+                    : `Download Selected (${selectedResults.length})`}
                 </button>
             )}
           </div>
 
-          <div className="flex items-center mb-4">
+          <div className="flex items-center mb-6 p-3 bg-zinc-900/30 rounded-lg w-fit">
             <input
               type="checkbox"
+              id="selectAll"
               checked={selectedResults.length === watermarkedResults.length}
               onChange={toggleSelectAll}
-              className="result-checkbox"
+              className="result-checkbox w-4 h-4 cursor-pointer"
             />
-            <span className="ml-2 text-sm">Select All</span>
+            <label htmlFor="selectAll" className="ml-3 text-sm font-medium text-zinc-300 cursor-pointer select-none">Select All Items</label>
           </div>
 
-          <div className="results-grid">
+          <div className="results-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {watermarkedResults.map((result, index) => (
-              <div key={index} className="result-item">
+              <div key={index} className="result-item group relative bg-zinc-900 rounded-xl border border-zinc-800 overflow-hidden">
                 <img
                   src={result}
                   alt={`Result ${index + 1}`}
-                  className="result-image"
+                  className="result-image w-full aspect-square object-cover"
                 />
-                <div className="result-actions">
+                <div className="result-actions absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
                   <input
                     type="checkbox"
                     checked={selectedResults.includes(index)}
                     onChange={() => toggleResultSelection(index)}
-                    className="result-checkbox"
+                    className="result-checkbox self-end w-5 h-5 cursor-pointer"
                   />
                   {selectedResults.length === 0 && (
                     <button
                       onClick={() => {
                         const link = document.createElement('a')
                         link.href = result
-                        link.download = `WMImg-${files[index].name}`
+                        link.download = `watermarked-${files[index].name}`
                         link.click()
                       }}
-                      className="btn btn-primary btn-sm"
+                      className="btn btn-primary btn-sm w-full py-2 text-xs"
                     >
                       Download
                     </button>

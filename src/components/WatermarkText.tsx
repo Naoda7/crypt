@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
+import { UploadCloud, X } from 'lucide-react'
 
 interface FileItem {
   id: string
@@ -17,8 +18,8 @@ const WatermarkText = () => {
   const [fontColor, setFontColor] = useState('#000000')
   const [fontSize, setFontSize] = useState(24)
   const [fontFamily, setFontFamily] = useState('Arial')
-  const [isBold, setIsBold] = useState(false) // State Tebal
-  const [isItalic, setIsItalic] = useState(false) // State Miring
+  const [isBold, setIsBold] = useState(false)
+  const [isItalic, setIsItalic] = useState(false)
   const [opacity, setOpacity] = useState(0.5)
   const [position, setPosition] = useState('center')
   const [isDragging, setIsDragging] = useState(false)
@@ -52,13 +53,18 @@ const WatermarkText = () => {
       file: file
     }))
     setFiles(prev => [...prev, ...newFiles])
-    if (!selectedFile) setSelectedFile(newFiles[0])
+    if (!selectedFile && newFiles.length > 0) setSelectedFile(newFiles[0])
   }, [selectedFile])
 
   const removeFile = useCallback((id: string) => {
-    setFiles(prev => prev.filter(f => f.id !== id))
-    if (selectedFile?.id === id) setSelectedFile(files[0] || null)
-  }, [selectedFile, files])
+    setFiles(prev => {
+      const filtered = prev.filter(f => f.id !== id);
+      if (selectedFile?.id === id) {
+        setSelectedFile(filtered.length > 0 ? filtered[0] : null);
+      }
+      return filtered;
+    })
+  }, [selectedFile])
 
   const generatePreview = useCallback(async (file: File) => {
     return new Promise<string>((resolve) => {
@@ -71,7 +77,6 @@ const WatermarkText = () => {
         canvas.height = img.height
         ctx.drawImage(img, 0, 0)
         if (text) {
-          // Mengatur Style Font (Italic Bold Size Family)
           const fontWeight = isBold ? 'bold' : 'normal'
           const fontStyle = isItalic ? 'italic' : ''
           ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`
@@ -166,7 +171,6 @@ const WatermarkText = () => {
 
   return (
     <div className="space-y-6">
-      {/* Upload Section */}
       <div className="input-group">
         <label className="label">Upload Images</label>
         
@@ -176,12 +180,28 @@ const WatermarkText = () => {
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
+          style={{ 
+            cursor: 'pointer',
+            border: '2px dashed #27272a',
+            borderRadius: '16px',
+            padding: '48px 24px',
+            textAlign: 'center',
+            transition: 'all 0.2s ease',
+            background: isDragging ? 'rgba(255,255,255,0.05)' : 'transparent'
+          }}
         >
-          <div className="drag-drop-content">
-            <p className="drag-drop-text">
-              {isDragging ? '🎉 Drop files here' : '📁 Drag & drop files or click to select'}
-            </p>
-            <p className="drag-drop-subtext">(Supported formats: PNG, JPG, JPEG)</p>
+          <div className="drag-drop-content flex flex-col items-center gap-3">
+            <div style={{ background: '#111', padding: '12px', borderRadius: '50%', border: '1px solid #333' }}>
+              <UploadCloud size={28} className={isDragging ? 'text-white' : 'text-zinc-500'} />
+            </div>
+            <div>
+              <p className="drag-drop-text font-semibold">
+                {isDragging ? 'Drop to upload' : 'Click or drag images here'}
+              </p>
+              <p className="drag-drop-subtext text-xs text-zinc-500 mt-1">
+                (Supported formats: PNG, JPG, JPEG)
+              </p>
+            </div>
           </div>
         </div>
 
@@ -195,17 +215,61 @@ const WatermarkText = () => {
         />
 
         {files.length > 0 && (
-          <div className="uploaded-files-wrapper">
-            <h4 className="uploaded-files-title">Selected Files ({files.length})</h4>
-            <div className="uploaded-files-list">
+          <div className="uploaded-list" style={{ marginTop: '16px', marginBottom: '24px' }}>
+            <h4 style={{ marginBottom: '8px', fontSize: '0.875rem', color: '#a1a1aa', fontWeight: '500' }}>
+              Selected Files ({files.length})
+            </h4>
+            <div 
+              style={{ 
+                maxHeight: '150px', 
+                overflowY: 'auto', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '6px' 
+              }} 
+              className="custom-scrollbar"
+            >
               {files.map(file => (
-                <div key={file.id} className="uploaded-file-item">
-                  <span className="file-name">{file.name}</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removeFile(file.id); }}
-                    className="remove-file-btn"
+                <div 
+                  key={file.id} 
+                  style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    fontSize: '0.8rem', 
+                    background: '#18181b', 
+                    padding: '10px 14px', 
+                    borderRadius: '10px', 
+                    border: '1px solid #27272a', 
+                    gap: '12px' 
+                  }}
+                >
+                  <span 
+                    style={{ 
+                      color: '#e4e4e7', 
+                      fontWeight: '500', 
+                      overflow: 'hidden', 
+                      textOverflow: 'ellipsis', 
+                      whiteSpace: 'nowrap', 
+                      flex: 1 
+                    }}
                   >
-                    ×
+                    {file.name}
+                  </span>
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); removeFile(file.id); }} 
+                    style={{ 
+                      color: '#71717a', 
+                      background: 'none', 
+                      border: 'none', 
+                      cursor: 'pointer', 
+                      display: 'flex', 
+                      flexShrink: 0,
+                      padding: '2px'
+                    }}
+                    className="hover:text-red-400 transition-colors"
+                  >
+                    <X size={14} />
                   </button>
                 </div>
               ))}
@@ -214,14 +278,47 @@ const WatermarkText = () => {
         )}
       </div>
 
-      {/* Watermark Controls */}
       {files.length > 0 && (
         <>
-          <div className="input-group">
-              <label className="label">Live Preview</label>
-              <div className="preview-container">
-                  <canvas ref={canvasRef} className="preview-canvas" />
-              </div>
+          <div 
+            className="input-group"
+            style={{ 
+              position: 'sticky', 
+              top: '0px', 
+              zIndex: 40, 
+              background: '#09090b', 
+              paddingTop: '10px',
+              paddingBottom: '16px'
+            }}
+          >
+            <label className="label">Live Preview</label>
+            <div 
+              className="preview-container"
+              style={{
+                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.4)',
+                border: '1px solid #27272a',
+                borderRadius: '12px',
+                overflow: 'hidden',
+                maxHeight: '250px',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                background: '#111'
+              }}
+            >
+              <canvas 
+                ref={canvasRef} 
+                className="preview-canvas" 
+                style={{ 
+                  display: 'block',
+                  maxWidth: '100%',
+                  maxHeight: '250px',
+                  width: 'auto',
+                  height: 'auto',
+                  objectFit: 'contain'
+                }} 
+              />
+            </div>
           </div>
           
           <div className="input-group">
@@ -251,25 +348,22 @@ const WatermarkText = () => {
             </select>
           </div>
 
-          {/* Weight*/}
           <div className="input-group">
             <label className="label">Font Style</label>
-            <div style={{ display: 'flex', gap: '12px' }}> {/* Menambahkan gap manual yang pasti bekerja */}
+            <div className="flex gap-3">
               <button 
                 type="button"
-                className={`btn ${isBold ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ flex: 1, justifyContent: 'center' }}
+                className={`btn ${isBold ? 'btn-primary' : 'btn-secondary'} flex-1`}
                 onClick={() => setIsBold(!isBold)}
               >
-                <span style={{ fontWeight: 'bold' }}>B</span> &nbsp; Bold
+                <span className="font-bold mr-2">B</span> Bold
               </button>
               <button 
                 type="button"
-                className={`btn ${isItalic ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ flex: 1, justifyContent: 'center' }}
+                className={`btn ${isItalic ? 'btn-primary' : 'btn-secondary'} flex-1`}
                 onClick={() => setIsItalic(!isItalic)}
               >
-                <span style={{ fontStyle: 'italic', fontFamily: 'serif' }}>I</span> &nbsp; Italic
+                <span className="italic font-serif mr-2">I</span> Italic
               </button>
             </div>
           </div>
@@ -333,23 +427,22 @@ const WatermarkText = () => {
         </>
       )}
 
-      {/* Results Section */}
       {watermarkedResults.length > 0 && (
         <div className="m-8">
-            <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Processed Results</h3>
             
             {(selectedResults.length > 0 || selectedResults.length === watermarkedResults.length) && (
-                <button
+              <button
                 onClick={downloadSelected}
                 className="btn btn-secondary"
-                >
+              >
                 {selectedResults.length === watermarkedResults.length
-                    ? 'Download All as ZIP'
-                    : `Download Selected (${selectedResults.length}) as ZIP`}
-                </button>
+                  ? 'Download All as ZIP'
+                  : `Download Selected (${selectedResults.length}) as ZIP`}
+              </button>
             )}
-            </div>
+          </div>
 
           <div className="flex items-center mb-4">
             <input

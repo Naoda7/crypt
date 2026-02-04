@@ -2,15 +2,33 @@ import { useState, useRef, useCallback, useEffect, useMemo, ChangeEvent, DragEve
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
 import potrace from 'potrace'
+import { 
+  RefreshCw, 
+  Maximize, 
+  UploadCloud, 
+  X, 
+  Lock, 
+  Unlock, 
+  Info, 
+  Download, 
+  CheckCircle2,
+  Loader2,
+  Image as ImageIcon
+} from 'lucide-react'
 
 interface FileItem {
   id: string
   name: string
   file: File
+  originalWidth?: number
+  originalHeight?: number
+  originalFormat?: string
 }
 
 type ImageFormat = 'jpg' | 'png' | 'webp' | 'svg' | 'ico'
 type IcoSize = '16' | '24' | '32' | '48' | '64'
+type SizeOption = 'original' | '32' | '48' | '64' | '100' | '280' | '500' | 'custom'
+type ToolMode = 'format' | 'size'
 
 const ConvertTools = () => {
   const [files, setFiles] = useState<FileItem[]>([])
@@ -19,21 +37,44 @@ const ConvertTools = () => {
   const [selectedResults, setSelectedResults] = useState<number[]>([])
   const [format, setFormat] = useState<ImageFormat>('jpg')
   const [icoSize, setIcoSize] = useState<IcoSize>('32')
+  
+  const [activeMode, setActiveMode] = useState<ToolMode>('format')
+  const [sizeMode, setSizeMode] = useState<SizeOption>('original')
+  const [customWidth, setCustomWidth] = useState<string>('')
+  const [customHeight, setCustomHeight] = useState<string>('')
+  const [lockAspectRatio, setLockAspectRatio] = useState(true)
+  
   const [isDragging, setIsDragging] = useState(false)
+  const [showModal, setShowModal] = useState(false) 
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [progress, setProgress] = useState(0)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const getImageMetadata = (file: File): Promise<{ w: number, h: number, ext: string }> => {
+    return new Promise((resolve) => {
+      const img = new Image()
+      const url = URL.createObjectURL(file)
+      img.onload = () => {
+        const ext = file.name.split('.').pop()?.toLowerCase() || ''
+        resolve({
+          w: img.width,
+          h: img.height,
+          ext: ext === 'jpeg' ? 'jpg' : ext
+        })
+        URL.revokeObjectURL(url)
+      }
+      img.src = url
+    })
+  }
+
   const hasMixedFormats = useMemo(() => {
-    const extensions = files.map(f => f.name.split('.').pop()?.toLowerCase());
+    const extensions = files.map(f => f.originalFormat || f.name.split('.').pop()?.toLowerCase());
     const uniqueExtensions = new Set(extensions.map(ext => ext === 'jpeg' ? 'jpg' : ext));
     return uniqueExtensions.size > 1;
   }, [files]);
 
   const availableFormats = useMemo(() => {
-    const activeExtensions = files.map(f => {
-      const ext = f.name.split('.').pop()?.toLowerCase()
-      return ext === 'jpeg' ? 'jpg' : ext
-    })
-
+    const activeExtensions = files.map(f => f.originalFormat || (f.name.split('.').pop()?.toLowerCase() === 'jpeg' ? 'jpg' : f.name.split('.').pop()?.toLowerCase()))
     const allOptions: { value: ImageFormat; label: string }[] = [
       { value: 'jpg', label: 'JPG' },
       { value: 'png', label: 'PNG' },
@@ -41,8 +82,7 @@ const ConvertTools = () => {
       { value: 'svg', label: 'SVG' },
       { value: 'ico', label: 'ICO' },
     ]
-
-    return allOptions.filter(option => !activeExtensions.includes(option.value))
+    return allOptions.filter(option => !activeExtensions.every(ext => ext === option.value))
   }, [files])
 
   useEffect(() => {
@@ -54,18 +94,48 @@ const ConvertTools = () => {
     }
   }, [availableFormats, format])
 
-  const handleFileUpload = useCallback((e: ChangeEvent<HTMLInputElement> | { target: { files: FileList | File[] | null } }) => {
+  const getBaseAspectRatio = async (): Promise<number> => {
+    if (files.length === 0) return 1
+    if (files[0].originalWidth && files[0].originalHeight) {
+        return files[0].originalWidth / files[0].originalHeight
+    }
+    return 1
+  }
+
+  const handleWidthChange = async (val: string) => {
+    setCustomWidth(val)
+    if (lockAspectRatio && val && !isNaN(parseInt(val))) {
+      const ratio = await getBaseAspectRatio()
+      setCustomHeight(Math.round(parseInt(val) / ratio).toString())
+    }
+  }
+
+  const handleHeightChange = async (val: string) => {
+    setCustomHeight(val)
+    if (lockAspectRatio && val && !isNaN(parseInt(val))) {
+      const ratio = await getBaseAspectRatio()
+      setCustomWidth(Math.round(parseInt(val) * ratio).toString())
+    }
+  }
+
+  const handleFileUpload = useCallback(async (e: ChangeEvent<HTMLInputElement> | { target: { files: FileList | File[] | null } }) => {
     const inputFiles = e.target.files
     if (!inputFiles) return
 
-    const newFiles = Array.from(inputFiles).map(file => ({
-      id: Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      file: file
+    const newFilesProcessed = await Promise.all(Array.from(inputFiles).map(async (file) => {
+      const meta = await getImageMetadata(file)
+      return {
+        id: Math.random().toString(36).substr(2, 9),
+        name: file.name,
+        file: file,
+        originalWidth: meta.w,
+        originalHeight: meta.h,
+        originalFormat: meta.ext
+      }
     }))
 
-    setFiles(prev => [...prev, ...newFiles])
-    if (!selectedFile && newFiles.length > 0) setSelectedFile(newFiles[0])
+    setFiles(prev => [...prev, ...newFilesProcessed])
+    if (!selectedFile && newFilesProcessed.length > 0) setSelectedFile(newFilesProcessed[0])
   }, [selectedFile])
 
   const removeFile = useCallback((id: string) => {
@@ -76,324 +146,318 @@ const ConvertTools = () => {
     })
   }, [selectedFile])
 
-  const convertFile = useCallback(async (file: File): Promise<string> => {
+  const convertFile = useCallback(async (fileItem: FileItem): Promise<string> => {
     return new Promise<string>((resolve, reject) => {
-      if (format === 'svg') {
+      if (activeMode === 'format' && format === 'svg') {
         const reader = new FileReader()
         reader.onload = (e: ProgressEvent<FileReader>) => {
           const result = e.target?.result
           if (typeof result === 'string') {
             potrace.trace(result, (err: Error | null, svg: string) => {
-              if (err) {
-                console.error('Error converting to SVG:', err)
-                reject(err)
-              } else {
-                resolve(`data:image/svg+xml;base64,${btoa(svg)}`)
-              }
+              if (err) { reject(err) } 
+              else { resolve(`data:image/svg+xml;base64,${btoa(svg)}`) }
             })
           }
         }
-        reader.readAsDataURL(file)
+        reader.readAsDataURL(fileItem.file)
       } else {
         const img = new Image()
-        img.src = URL.createObjectURL(file)
+        img.src = URL.createObjectURL(fileItem.file)
 
         img.onload = () => {
           const canvas = document.createElement('canvas')
           const ctx = canvas.getContext('2d')
-          if (!ctx) {
-            reject(new Error('Canvas context failed'))
-            return
-          }
+          if (!ctx) return reject(new Error('Canvas context failed'))
 
-          if (format === 'ico') {
+          let targetWidth = img.width
+          let targetHeight = img.height
+          const aspectRatio = img.width / img.height
+
+          if (activeMode === 'size') {
+             if (sizeMode === 'custom') {
+               targetWidth = parseInt(customWidth) || img.width
+               targetHeight = parseInt(customHeight) || img.height
+             } else if (sizeMode !== 'original') {
+               targetWidth = parseInt(sizeMode)
+               targetHeight = Math.round(targetWidth / aspectRatio)
+             }
+          } else if (format === 'ico') {
             const size = parseInt(icoSize)
-            canvas.width = size
-            canvas.height = size
-          } else {
-            canvas.width = img.width
-            canvas.height = img.height
+            targetWidth = size
+            targetHeight = size
           }
 
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+          canvas.width = targetWidth
+          canvas.height = targetHeight
+          ctx.drawImage(img, 0, 0, targetWidth, targetHeight)
 
-          let mimeType = ''
-          if (format === 'ico') {
-            mimeType = 'image/x-icon'
-          } else {
-            mimeType = format === 'jpg' ? 'image/jpeg' : `image/${format}`
+          let mimeType = `image/${fileItem.originalFormat === 'jpg' ? 'jpeg' : fileItem.originalFormat}` 
+          if (activeMode === 'format') {
+            mimeType = format === 'ico' ? 'image/x-icon' : (format === 'jpg' ? 'image/jpeg' : `image/${format}`)
           }
+          
           resolve(canvas.toDataURL(mimeType))
           URL.revokeObjectURL(img.src)
         }
-
-        img.onerror = (err) => {
-          console.error('Error loading image:', err)
-          reject(err)
-        }
+        img.onerror = (err) => reject(err)
       }
     })
-  }, [format, icoSize])
+  }, [format, icoSize, sizeMode, customWidth, customHeight, activeMode])
 
   const processFiles = useCallback(async () => {
-    const results = await Promise.all(files.map(async (file) => {
-      return convertFile(file.file)
-    }))
-    setConvertedResults(results)
-    setSelectedResults([])
+    setIsProcessing(true)
+    setProgress(0)
+    
+    try {
+      const results: string[] = []
+      for (let i = 0; i < files.length; i++) {
+        const res = await convertFile(files[i])
+        results.push(res)
+        setProgress(Math.round(((i + 1) / files.length) * 100))
+      }
+      
+      setConvertedResults(results)
+      setSelectedResults(Array.from({ length: results.length }, (_, i) => i))
+      
+      setTimeout(() => {
+        setIsProcessing(false)
+        setShowModal(true)
+      }, 500)
+    } catch (error) {
+      console.error(error)
+      setIsProcessing(false)
+    }
   }, [files, convertFile])
 
   const downloadSelected = useCallback(async () => {
     const zip = new JSZip()
-    const folder = zip.folder("converted-images")
-
+    
     for (const index of selectedResults) {
       const result = convertedResults[index]
-      const fileName = `converted-${files[index].name.replace(/\.[^/.]+$/, "")}.${format}`
-
-      if (format === 'svg') {
-        const svgContent = atob(result.split(',')[1])
-        folder?.file(fileName, svgContent)
+      const ext = activeMode === 'format' ? format : files[index].originalFormat
+      const fileName = `${files[index].name.replace(/\.[^/.]+$/, "")}.${ext}`
+      const base64Data = result.split(',')[1]
+      
+      if (ext === 'svg') {
+        zip.file(fileName, atob(base64Data))
       } else {
-        const base64Data = result.split(',')[1]
-        folder?.file(fileName, base64Data, { base64: true })
+        zip.file(fileName, base64Data, { base64: true })
       }
     }
 
     const content = await zip.generateAsync({ type: "blob" })
     saveAs(content, "converted-images.zip")
-  }, [selectedResults, convertedResults, files, format])
+  }, [selectedResults, convertedResults, files, format, activeMode])
 
-  const handleDragOver = useCallback((e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    setIsDragging(true)
-  }, [])
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(true); }
+  const handleDragLeave = (e: DragEvent<HTMLDivElement>) => { e.preventDefault(); setIsDragging(false); }
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault(); setIsDragging(false);
+    if (e.dataTransfer.files.length > 0) handleFileUpload({ target: { files: e.dataTransfer.files } });
+  }
 
-  const handleDragLeave = useCallback((e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    setIsDragging(false)
-  }, [])
+  const toggleResultSelection = (index: number) => {
+    setSelectedResults(prev => prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index])
+  }
 
-  const handleDrop = useCallback((e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault()
-    setIsDragging(false)
+  const toggleSelectAll = () => {
+    setSelectedResults(selectedResults.length === convertedResults.length ? [] : Array.from({ length: convertedResults.length }, (_, i) => i))
+  }
 
-    const droppedFiles = e.dataTransfer.files
-    if (droppedFiles.length > 0) {
-      handleFileUpload({ target: { files: droppedFiles } })
-    }
-  }, [handleFileUpload])
-
-  const toggleResultSelection = useCallback((index: number) => {
-    setSelectedResults(prev =>
-      prev.includes(index)
-        ? prev.filter(i => i !== index)
-        : [...prev, index]
-    )
-  }, [])
-
-  const toggleSelectAll = useCallback(() => {
-    if (selectedResults.length === convertedResults.length) {
-      setSelectedResults([])
-    } else {
-      setSelectedResults(Array.from({ length: convertedResults.length }, (_, i) => i))
-    }
-  }, [selectedResults, convertedResults])
-
-  useEffect(() => {
-    setConvertedResults([])
-    setSelectedResults([])
-  }, [format])
+  useEffect(() => { setConvertedResults([]); setSelectedResults([]); }, [format, activeMode, sizeMode])
 
   return (
-    <div className="space-y-6">
+    <div className="relative space-y-6">
+      {/* PROCESSING OVERLAY */}
+      {isProcessing && (
+        <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(12px)', zIndex: 1000 }}>
+          <div style={{ background: '#09090b', padding: '40px', borderRadius: '24px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,1)' }}>
+            <Loader2 className="w-12 h-12 text-white animate-spin" />
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-white mb-1">Processing Images</h3>
+              <p className="text-sm text-zinc-500">Converting {files.length} file(s)</p>
+            </div>
+            <div style={{ width: '280px', height: '8px', background: '#18181b', borderRadius: '999px', overflow: 'hidden', border: '1px solid #27272a' }}>
+              <div 
+                style={{ height: '100%', background: '#ffffff', width: `${progress}%`, transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)' }}
+              />
+            </div>
+            <span className="text-sm font-mono font-medium text-white">{progress}%</span>
+          </div>
+        </div>
+      )}
+
       <div className="input-group">
-        <label className="label">Upload Images</label>
+        <label className="label text-zinc-400 font-medium block text-sm">Upload Images</label>
         
         {hasMixedFormats && (
-          <div className="alert-box" style={{ 
-            backgroundColor: '#fff3cd', 
-            color: '#856404', 
-            padding: '12px', 
-            borderRadius: '6px', 
-            marginBottom: '12px',
-            fontSize: '0.875rem',
-            border: '1px solid #ffeeba',
-            lineHeight: '1.4'
-          }}>
-            <strong>💡 Note:</strong> You have uploaded files with different formats. 
-            The available conversion options are limited to formats <strong>not currently used</strong> by your uploaded files.
+          <div style={{ backgroundColor: '#18181b', color: '#e4e4e7', padding: '12px 16px', borderRadius: '12px', marginBottom: '16px', border: '1px solid #27272a', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Info size={16} className="text-zinc-400" />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Multiple formats detected. Target options updated.</span>
           </div>
         )}
 
         <div
           className={`drag-drop-zone ${isDragging ? 'dragging' : ''} mb-2`}
-          onDragOver={handleDragOver}
-          onDragLeave={handleDragLeave}
-          onDrop={handleDrop}
+          onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
+          style={{ 
+            cursor: 'pointer', border: '2px dashed #27272a', borderRadius: '16px', padding: '48px 24px', textAlign: 'center', transition: 'all 0.2s ease', background: isDragging ? '#18181b' : 'transparent', borderColor: isDragging ? '#fff' : '#27272a'
+          }}
         >
-          <div className="drag-drop-content">
-            <p className="drag-drop-text">
-              {isDragging ? '🎉 Drop files here' : '📁 Drag & drop files or click to select'}
-            </p>
-            <p className="drag-drop-subtext">(Supported formats: PNG, JPG, JPEG)</p>
+          <div className="drag-drop-content flex flex-col items-center gap-3">
+            <div style={{ background: '#18181b', padding: '12px', borderRadius: '50%', border: '1px solid #27272a' }}>
+                <UploadCloud size={28} className={isDragging ? 'text-white' : 'text-zinc-500'} />
+            </div>
+            <div>
+                <p className="drag-drop-text font-semibold" style={{ color: isDragging ? '#fff' : '#e4e4e7' }}>{isDragging ? 'Drop to upload' : 'Click or drag images here'}</p>
+                <p className="drag-drop-subtext text-xs text-zinc-500 mt-1">Supports PNG, JPG, WEBP</p>
+            </div>
           </div>
         </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="image/*"
-          onChange={handleFileUpload}
-          className="hidden-file-input"
-          style={{ display: 'none' }}
-        />
-        
-        {files.length > 0 && (
-          <div className="mt-3">
-            <h4 className="text-sm font-medium mb-2">Uploaded Files ({files.length})</h4>
-            <div className="uploaded-files-container" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-              {files.map(file => (
-                <div key={file.id} className="uploaded-file" style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between',
-                  gap: '10px' 
-                }}>
-                  {/* Perbaikan pada nama file agar tetap dalam satu baris dengan ellipsis */}
-                  <span className="uploaded-file-name" style={{ 
-                    whiteSpace: 'nowrap', 
-                    overflow: 'hidden', 
-                    textOverflow: 'ellipsis',
-                    flex: '1',
-                    minWidth: '0' 
-                  }}>
-                    {file.name}
-                  </span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); removeFile(file.id); }}
-                    className="remove-file-btn"
-                    style={{ flexShrink: '0' }}
-                  >
-                    ×
+        <input ref={fileInputRef} type="file" multiple accept="image/*" onChange={handleFileUpload} style={{ display: 'none' }} />
+      </div>
+
+      {files.length > 0 && (
+        <div className="tool-container" style={{ background: '#09090b', padding: '24px', borderRadius: '16px', border: '1px solid #27272a' }}>
+          <div style={{ marginBottom: '24px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ background: '#18181b', padding: '8px', borderRadius: '8px' }}>
+                <ImageIcon size={18} className="text-zinc-400" />
+            </div>
+            <div style={{ minWidth: 0 }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: '600', color: '#fff' }}>Queue Management</h4>
+                <p style={{ fontSize: '0.8rem', color: '#71717a' }}>{files.length} items ready</p>
+            </div>
+          </div>
+          
+          <div className="tab-nav-container" style={{ marginBottom: '24px' }}>
+            <div className="tab-nav-wrapper" style={{ position: 'relative', display: 'flex', background: '#18181b', borderRadius: '10px', padding: '4px', border: '1px solid #27272a' }}>
+              <button onClick={() => setActiveMode('format')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '8px', cursor: 'pointer', zIndex: 2, transition: 'all 0.3s', background: 'transparent', color: activeMode === 'format' ? '#000' : '#71717a', fontWeight: '600', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <RefreshCw size={14} /> Format
+              </button>
+              <button onClick={() => setActiveMode('size')} style={{ flex: 1, padding: '10px', border: 'none', borderRadius: '8px', cursor: 'pointer', zIndex: 2, transition: 'all 0.3s', background: 'transparent', color: activeMode === 'size' ? '#000' : '#71717a', fontWeight: '600', fontSize: '0.85rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <Maximize size={14} /> Size
+              </button>
+              <div style={{ position: 'absolute', top: '4px', left: activeMode === 'format' ? '4px' : '50%', width: 'calc(50% - 4px)', height: 'calc(100% - 8px)', background: '#ffffff', borderRadius: '7px', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', zIndex: 1 }}></div>
+            </div>
+          </div>
+
+          <div className="uploaded-list" style={{ marginBottom: '24px' }}>
+            <div style={{ maxHeight: '150px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }} className="custom-scrollbar">
+              {files.map(f => (
+                <div key={f.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem', background: '#18181b', padding: '10px 14px', borderRadius: '10px', border: '1px solid #27272a', gap: '12px' }}>
+                  <span style={{ color: '#e4e4e7', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{f.name}</span>
+                  <button onClick={() => removeFile(f.id)} style={{ color: '#71717a', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexShrink: 0 }}>
+                    <X size={14} />
                   </button>
                 </div>
               ))}
             </div>
           </div>
-        )}
-      </div>
 
-      {files.length > 0 && (
-        <>
-          <div className="input-group">
-            <h4 className="label mb-1">Convert To</h4>
-            <select
-              value={format}
-              onChange={(e) => setFormat(e.target.value as ImageFormat)}
-              className="select"
-            >
-              {availableFormats.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-              {availableFormats.length === 0 && <option disabled>No target formats available</option>}
-            </select>
-          </div>
-
-          {format === 'ico' && (
-            <div className="input-group">
-              <label className="label">ICO Size</label>
-              <select
-                value={icoSize}
-                onChange={(e) => setIcoSize(e.target.value as IcoSize)}
-                className="select"
-              >
-                <option value="16">16x16</option>
-                <option value="24">24x24</option>
-                <option value="32">32x32</option>
-                <option value="48">48x48</option>
-                <option value="64">64x64</option>
-              </select>
-            </div>
-          )}
-
-          <button
-            onClick={processFiles}
-            className="btn btn-primary w-full mb-3"
-            disabled={availableFormats.length === 0}
-          >
-            Convert All Files
-          </button>
-        </>
-      )}
-
-      {convertedResults.length > 0 && (
-        <div className="mt-8">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="text-lg font-semibold">Converted Results</h3>
-            {selectedResults.length > 0 && (
-              <button
-                onClick={downloadSelected}
-                className="btn btn-secondary"
-              >
-                {selectedResults.length === convertedResults.length
-                  ? 'Download All as ZIP'
-                  : `Download Selected (${selectedResults.length}) as ZIP`}
-              </button>
+          <div className="mode-content" style={{ marginBottom: '24px' }}>
+            {activeMode === 'format' ? (
+              <div style={{ display: 'flex', gap: '16px' }}>
+                <div className="input-group" style={{ flex: 1 }}>
+                  <label className="label text-xs text-zinc-500 font-bold uppercase mb-2 block">Target Format</label>
+                  <select value={format} onChange={(e) => setFormat(e.target.value as ImageFormat)} className="select" style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#18181b', border: '1px solid #27272a', color: '#fff', outline: 'none' }}>
+                    {availableFormats.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+                </div>
+                {format === 'ico' && (
+                  <div className="input-group" style={{ flex: 1 }}>
+                    <label className="label text-xs text-zinc-500 font-bold uppercase mb-2 block">ICO Size</label>
+                    <select value={icoSize} onChange={(e) => setIcoSize(e.target.value as IcoSize)} className="select" style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#18181b', border: '1px solid #27272a', color: '#fff', outline: 'none' }}>
+                      {['16','24','32','48','64'].map(s => <option key={s} value={s}>{s} x {s} px</option>)}
+                    </select>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="input-group w-full">
+                  <label className="label text-xs text-zinc-500 font-bold uppercase mb-2 block">Dimensions</label>
+                  <select value={sizeMode} onChange={(e) => setSizeMode(e.target.value as SizeOption)} className="select" style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#18181b', border: '1px solid #27272a', color: '#fff', outline: 'none' }}>
+                    <option value="original">Original Aspect Ratio</option>
+                    <option value="32">32px</option>
+                    <option value="100">100px</option>
+                    <option value="500">500px</option>
+                    <option value="custom">Manual Resize...</option>
+                  </select>
+                </div>
+                {sizeMode === 'custom' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ flex: 1 }}>
+                      <input type="number" value={customWidth} onChange={(e) => handleWidthChange(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#18181b', border: '1px solid #27272a', color: '#fff', outline: 'none' }} placeholder="Width" />
+                    </div>
+                    <div style={{ color: '#3f3f46' }}>×</div>
+                    <div style={{ flex: 1, position: 'relative' }}>
+                        <input type="number" value={customHeight} onChange={(e) => handleHeightChange(e.target.value)} style={{ width: '100%', padding: '12px', borderRadius: '10px', background: lockAspectRatio ? 'rgba(24, 24, 27, 0.5)' : '#18181b', border: '1px solid #27272a', color: '#fff', paddingRight: '40px', outline: 'none' }} readOnly={lockAspectRatio} placeholder="Height" />
+                        <button type="button" onClick={() => setLockAspectRatio(!lockAspectRatio)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: lockAspectRatio ? '#fff' : '#52525b' }}>
+                          {lockAspectRatio ? <Lock size={14} /> : <Unlock size={14} />}
+                        </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
           </div>
 
-          <div className="flex items-center mb-1">
-            <input
-              type="checkbox"
-              checked={selectedResults.length === convertedResults.length && convertedResults.length > 0}
-              onChange={toggleSelectAll}
-              className="result-checkbox"
-            />
-            <span className="ml-2 text-sm">Select All</span>
-          </div>
+          <button onClick={processFiles} disabled={isProcessing} style={{ width: '100%', padding: '16px', borderRadius: '12px', background: '#ffffff', color: '#000', border: 'none', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', opacity: isProcessing ? 0.7 : 1 }}>
+            {isProcessing ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle2 size={20} />} 
+            {isProcessing ? 'Processing...' : `Convert ${files.length} Image(s)`}
+          </button>
+        </div>
+      )}
 
-          <div className="results-grid">
-            {convertedResults.map((result, index) => (
-              <div key={index} className="result-item">
-                {format === 'svg' ? (
-                  <iframe
-                    src={result}
-                    title={`result-${index}`}
-                    className="result-image"
-                    style={{ width: '100%', height: '150px', border: 'none' }}
-                  />
-                ) : (
-                  <img
-                    src={result}
-                    alt={`Result ${index + 1}`}
-                    className="result-image"
-                  />
-                )}
-                <div className="result-actions">
-                  <input
-                    type="checkbox"
-                    checked={selectedResults.includes(index)}
-                    onChange={() => toggleResultSelection(index)}
-                    className="result-checkbox"
-                  />
-                  {selectedResults.length === 0 && (
-                    <button
-                      onClick={() => {
-                        const link = document.createElement('a')
-                        link.href = result
-                        link.download = `converted-${files[index].name.replace(/\.[^/.]+$/, "")}.${format}`
-                        link.click()
-                      }}
-                      className="btn btn-primary btn-sm"
-                    >
-                      Download
-                    </button>
-                  )}
-                </div>
+      {/* RESULT MODAL */}
+      {showModal && (
+        <div style={{ position: 'fixed', margin: '0 auto', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, padding: '20px', backdropFilter: 'blur(10px)' }}>
+          <div style={{ background: '#09090b', width: '100%', maxWidth: '1000px', maxHeight: '90vh', borderRadius: '28px', border: '1px solid #27272a', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            
+            <div style={{ padding: '24px 32px', borderBottom: '1px solid #27272a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#fff' }}>Conversion Ready</h3>
+                <p style={{ fontSize: '0.85rem', color: '#71717a' }}>Select files to save</p>
               </div>
-            ))}
+              <button onClick={() => setShowModal(false)} style={{ background: '#18181b', border: '1px solid #27272a', borderRadius: '50%', width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}><X size={20} /></button>
+            </div>
+
+            <div style={{ padding: '32px', overflowY: 'auto', flex: 1, background: '#020617' }} className="custom-scrollbar">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <input type="checkbox" id="selectAll" checked={selectedResults.length === convertedResults.length} onChange={toggleSelectAll} style={{ width: '20px', height: '20px', cursor: 'pointer', accentColor: '#fff' }} />
+                  <label htmlFor="selectAll" style={{ cursor: 'pointer', fontSize: '0.95rem', color: '#e4e4e7', fontWeight: '500' }}>Select All</label>
+                </div>
+                {selectedResults.length > 0 && (
+                  <button onClick={downloadSelected} style={{ background: '#fff', color: '#000', border: 'none', padding: '10px 20px', borderRadius: '10px', fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Download size={16} /> Download ZIP
+                  </button>
+                )}
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '20px' }}>
+                {convertedResults.map((result, index) => (
+                  <div key={index} style={{ border: '1px solid #1e293b', borderRadius: '20px', overflow: 'hidden', background: '#09090b' }}>
+                    <div style={{ aspectRatio: '1/1', background: '#020617', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', borderBottom: '1px solid #1e293b' }}>
+                        <input type="checkbox" checked={selectedResults.includes(index)} onChange={() => toggleResultSelection(index)} style={{ position: 'absolute', top: '14px', left: '14px', zIndex: 10, width: '18px', height: '18px', cursor: 'pointer', accentColor: '#000' }} />
+                        <img src={result} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '12px' }} alt="preview" />
+                    </div>
+                    <div style={{ padding: '16px' }}>
+                      {/* Nama File Terpotong di Card Hasil */}
+                      <p style={{ fontSize: '0.75rem', color: '#e4e4e7', marginBottom: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: '500' }}>{files[index].name}</p>
+                      <button onClick={() => saveAs(result, `${files[index].name.split('.')[0]}.${activeMode === 'format' ? format : files[index].originalFormat}`)} style={{ width: '100%', background: '#18181b', color: '#fff', border: '1px solid #27272a', padding: '10px', borderRadius: '10px', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                        <Download size={14} /> Save
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ padding: '24px 32px', borderTop: '1px solid #27272a', textAlign: 'right', background: '#09090b' }}>
+              <button onClick={() => setShowModal(false)} style={{ background: 'transparent', color: '#fff', border: '1px solid #27272a', padding: '12px 32px', borderRadius: '12px', cursor: 'pointer', fontWeight: '600' }}>Dismiss</button>
+            </div>
           </div>
         </div>
       )}
@@ -401,4 +465,4 @@ const ConvertTools = () => {
   )
 }
 
-export default ConvertTools
+export default ConvertTools;

@@ -8,20 +8,23 @@ import Hmac from './components/Hmac'
 import Bcrypt from './components/Bcrypt'
 import QRCodeGenerator from './components/QRCodeGenerator'
 import Tools from './components/Tools'
+import NotFound from './components/NotFound'
 import './styles/global.css'
 
 const router = createBrowserRouter([
   {
     path: "/",
     element: <App />,
+    errorElement: <NotFound />,
     children: [
       { index: true, element: <CryptoPage /> }, 
-      
       { path: "hash", element: <Hash /> },
       { path: "hmac", element: <Hmac /> },
       { path: "bcrypt", element: <Bcrypt /> },
       { path: "qrcode", element: <QRCodeGenerator /> },
       { path: "tools", element: <Tools /> },
+      
+      { path: "*", element: <NotFound /> }, 
     ],
   },
 ]);

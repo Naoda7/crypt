@@ -9,6 +9,7 @@ import Bcrypt from './components/Bcrypt'
 import QRCodeGenerator from './components/QRCodeGenerator'
 import Tools from './components/Tools'
 import NotFound from './components/NotFound'
+import Cyrillic from './components/CyrillicConverter'
 import './styles/global.css'
 
 const router = createBrowserRouter([
@@ -21,6 +22,7 @@ const router = createBrowserRouter([
       { path: "hash", element: <Hash /> },
       { path: "hmac", element: <Hmac /> },
       { path: "bcrypt", element: <Bcrypt /> },
+      { path: "cyrillic", element: <Cyrillic /> },
       { path: "qrcode", element: <QRCodeGenerator /> },
       { path: "tools", element: <Tools /> },
       

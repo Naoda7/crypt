@@ -4,7 +4,6 @@ import React, { useState, useMemo } from 'react';
 import { Copy, Check, Globe, ArrowLeftRight } from 'lucide-react';
 import punycode from 'punycode';
 
-// Pemetaan karakter yang terlihat serupa antara Latin dan Cyrillic
 const CYRILLIC_MAP: Record<string, string> = {
   'a': 'а', 'b': 'Ь', 'c': 'с', 'e': 'е', 'h': 'н', 'i': 'і', 'j': 'ј', 
   'k': 'к', 'm': 'м', 'o': 'о', 'p': 'р', 'r': 'г', 's': 'ѕ', 't': 'т', 

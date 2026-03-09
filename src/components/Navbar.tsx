@@ -22,8 +22,24 @@ const Navbar = () => {
 
   const toggleMenu = () => setIsOpen(!isOpen)
   
+  // Untuk mobile: toggle dropdown dengan klik
   const toggleDropdown = (dropdown: string) => {
-    setOpenDropdown(openDropdown === dropdown ? null : dropdown)
+    if (window.innerWidth <= 768) {
+      setOpenDropdown(openDropdown === dropdown ? null : dropdown)
+    }
+  }
+
+  // Untuk desktop: hover
+  const handleMouseEnter = (dropdown: string) => {
+    if (window.innerWidth > 768) {
+      setOpenDropdown(dropdown)
+    }
+  }
+
+  const handleMouseLeave = () => {
+    if (window.innerWidth > 768) {
+      setOpenDropdown(null)
+    }
   }
 
   // Close menu when window is resized to desktop
@@ -31,6 +47,9 @@ const Navbar = () => {
     const handleResize = () => {
       if (window.innerWidth > 768 && isOpen) {
         setIsOpen(false)
+      }
+      if (window.innerWidth > 768) {
+        setOpenDropdown(null)
       }
     }
 
@@ -70,7 +89,11 @@ const Navbar = () => {
           </NavLink>
 
           {/* Dropdown CRYPTOGRAPHY */}
-          <div className="dropdown-container">
+          <div 
+            className="dropdown-container"
+            onMouseEnter={() => handleMouseEnter('crypto')}
+            onMouseLeave={handleMouseLeave}
+          >
             <button 
               className={`dropdown-btn ${openDropdown === 'crypto' ? 'active' : ''}`}
               onClick={() => toggleDropdown('crypto')}
@@ -118,7 +141,11 @@ const Navbar = () => {
           </div>
 
           {/* Dropdown UTILITIES */}
-          <div className="dropdown-container">
+          <div 
+            className="dropdown-container"
+            onMouseEnter={() => handleMouseEnter('utils')}
+            onMouseLeave={handleMouseLeave}
+          >
             <button 
               className={`dropdown-btn ${openDropdown === 'utils' ? 'active' : ''}`}
               onClick={() => toggleDropdown('utils')}
@@ -210,7 +237,8 @@ const Navbar = () => {
           opacity: 0.7;
         }
 
-        .dropdown-btn:hover .dropdown-arrow {
+        .dropdown-container:hover .dropdown-arrow {
+          transform: rotate(180deg);
           opacity: 1;
         }
 
@@ -275,25 +303,6 @@ const Navbar = () => {
           display: none;
         }
 
-        /* Desktop hover effect untuk dropdown container */
-        @media (min-width: 769px) {
-          .dropdown-container:hover .dropdown-content {
-            opacity: 1;
-            visibility: visible;
-            transform: translateX(-50%) translateY(5px);
-          }
-          
-          .dropdown-container:hover .dropdown-arrow {
-            transform: rotate(180deg);
-            opacity: 1;
-          }
-          
-          .dropdown-container:hover .dropdown-btn {
-            color: var(--primary);
-            opacity: 1;
-          }
-        }
-
         @media (max-width: 768px) {
           .mobile-menu-overlay {
             display: block;
@@ -316,6 +325,10 @@ const Navbar = () => {
             background: var(--border);
             transform: none;
             text-shadow: none;
+          }
+
+          .dropdown-container:hover .dropdown-arrow {
+            transform: none;
           }
 
           .dropdown-content {

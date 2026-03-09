@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import CryptoJS from 'crypto-js'
-import { Copy, Check } from 'lucide-react'
+import { Copy, Check, ChevronDown } from 'lucide-react'
 
 const hmacAlgorithms = [
   'MD5',
@@ -58,15 +58,17 @@ const Hmac = () => {
       <h1 className="text-center mb-2">HMAC Generator</h1>
 
       <div className="input-group">
-        <select
-          value={algorithm}
-          onChange={(e) => setAlgorithm(e.target.value as typeof hmacAlgorithms[number])}
-          className="select"
-        >
-          {hmacAlgorithms.map(algo => (
-            <option key={algo} value={algo}>{algo}</option>
-          ))}
-        </select>
+        <div className="select-wrapper">
+          <select
+            value={algorithm}
+            onChange={(e) => setAlgorithm(e.target.value as typeof hmacAlgorithms[number])}
+          >
+            {hmacAlgorithms.map(algo => (
+              <option key={algo} value={algo}>{algo}</option>
+            ))}
+          </select>
+          <ChevronDown className="select-arrow" size={18} />
+        </div>
       </div>
 
       <div className="input-group">
@@ -111,7 +113,13 @@ const Hmac = () => {
             )}
           </button>
           <h3 className="mb-1">HMAC Result:</h3>
-          <pre className="result">{result}</pre>
+          <pre className="result" style={{ 
+            background: 'var(--surface)', 
+            padding: '1rem', 
+            borderRadius: '6px',
+            overflow: 'auto',
+            wordBreak: 'break-all'
+          }}>{result}</pre>
         </div>
       )}
     </div>

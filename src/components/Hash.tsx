@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import CryptoJS from 'crypto-js'
-import { Copy } from 'lucide-react'
+import { Copy, Check, ChevronDown } from 'lucide-react'
 
 const hashAlgorithms = ['MD5', 'SHA1', 'SHA256', 'SHA512', 'SHA3', 'RIPEMD160'] as const
 
@@ -34,15 +34,17 @@ const Hash = () => {
       <h1 className="text-center mb-2">Generate Hash</h1>
 
       <div className="input-group">
-        <select
-          value={algorithm}
-          onChange={(e) => setAlgorithm(e.target.value as typeof hashAlgorithms[number])}
-          className="select"
-        >
-          {hashAlgorithms.map(algo => (
-            <option key={algo} value={algo}>{algo}</option>
-          ))}
-        </select>
+        <div className="select-wrapper">
+          <select
+            value={algorithm}
+            onChange={(e) => setAlgorithm(e.target.value as typeof hashAlgorithms[number])}
+          >
+            {hashAlgorithms.map(algo => (
+              <option key={algo} value={algo}>{algo}</option>
+            ))}
+          </select>
+          <ChevronDown className="select-arrow" size={18} />
+        </div>
       </div>
 
       <div className="input-group">
@@ -68,12 +70,23 @@ const Hash = () => {
             onClick={copyToClipboard}
             className="copy-button"
           >
-            {showCopied ? 'Copied!' :
+            {showCopied ? (
+              <>
+                <Check size={16} />
+                <span>Copied!</span>
+              </>
+            ) : (
               <Copy size={16} />
-            }
+            )}
           </button>
         </div>
-        <pre className="result">{result}</pre>
+        <pre className="result" style={{ 
+          background: 'var(--surface)', 
+          padding: '1rem', 
+          borderRadius: '6px',
+          overflow: 'auto',
+          wordBreak: 'break-all'
+        }}>{result}</pre>
       </div>
     )}
     </div>

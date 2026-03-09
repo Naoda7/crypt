@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import bcrypt from 'bcryptjs'
-import { Copy, Check } from 'lucide-react'
+import { Copy, Check, ChevronDown } from 'lucide-react'
 
 const saltRoundsOptions = [8, 9, 10, 11, 12] as const
 
@@ -39,17 +39,19 @@ const Bcrypt = () => {
       <h1 className="text-center mb-2">Bcrypt Hash Generator</h1>
 
       <div className="input-group">
-        <select
-          value={saltRounds}
-          onChange={(e) => setSaltRounds(Number(e.target.value) as typeof saltRoundsOptions[number])}
-          className="select"
-        >
-          {saltRoundsOptions.map(round => (
-            <option key={round} value={round}>
-              Salt Rounds: {round}
-            </option>
-          ))}
-        </select>
+        <div className="select-wrapper">
+          <select
+            value={saltRounds}
+            onChange={(e) => setSaltRounds(Number(e.target.value) as typeof saltRoundsOptions[number])}
+          >
+            {saltRoundsOptions.map(round => (
+              <option key={round} value={round}>
+                Salt Rounds: {round}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="select-arrow" size={18} />
+        </div>
       </div>
 
       <div className="input-group">
@@ -90,7 +92,13 @@ const Bcrypt = () => {
             )}
           </button>
           <h3 className="mb-1">Bcrypt Hash:</h3>
-          <pre className="result">{hashed}</pre>
+          <pre className="result" style={{ 
+            background: 'var(--surface)', 
+            padding: '1rem', 
+            borderRadius: '6px',
+            overflow: 'auto',
+            wordBreak: 'break-all'
+          }}>{hashed}</pre>
         </div>
       )}
     </div>

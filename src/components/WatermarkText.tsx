@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
-import { UploadCloud, X } from 'lucide-react'
+import { UploadCloud, X, ChevronDown } from 'lucide-react'
 
 interface FileItem {
   id: string
@@ -334,18 +334,20 @@ const WatermarkText = () => {
 
           <div className="input-group">
             <label className="label">Font Family</label>
-            <select
-              value={fontFamily}
-              onChange={(e) => setFontFamily(e.target.value)}
-              className="select"
-              style={{ fontFamily: fontFamily }}
-            >
-              {fontOptions.map((f) => (
-                <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
-                  {f.name}
-                </option>
-              ))}
-            </select>
+            <div className="select-wrapper">
+              <select
+                value={fontFamily}
+                onChange={(e) => setFontFamily(e.target.value)}
+                style={{ fontFamily: fontFamily }}
+              >
+                {fontOptions.map((f) => (
+                  <option key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+                    {f.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="select-arrow" size={18} />
+            </div>
           </div>
 
           <div className="input-group">
@@ -405,17 +407,19 @@ const WatermarkText = () => {
 
           <div className="input-group">
             <label className="label">Position</label>
-            <select
-              value={position}
-              onChange={(e) => setPosition(e.target.value)}
-              className="select"
-            >
-              <option value="top-left">Top Left</option>
-              <option value="top-right">Top Right</option>
-              <option value="center">Center</option>
-              <option value="bottom-left">Bottom Left</option>
-              <option value="bottom-right">Bottom Right</option>
-            </select>
+            <div className="select-wrapper">
+              <select
+                value={position}
+                onChange={(e) => setPosition(e.target.value)}
+              >
+                <option value="top-left">Top Left</option>
+                <option value="top-right">Top Right</option>
+                <option value="center">Center</option>
+                <option value="bottom-left">Bottom Left</option>
+                <option value="bottom-right">Bottom Right</option>
+              </select>
+              <ChevronDown className="select-arrow" size={18} />
+            </div>
           </div>
 
           <button

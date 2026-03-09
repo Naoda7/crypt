@@ -13,7 +13,8 @@ import {
   Download, 
   CheckCircle2,
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  ChevronDown
 } from 'lucide-react'
 
 interface FileItem {
@@ -360,16 +361,22 @@ const ConvertTools = () => {
               <div style={{ display: 'flex', gap: '16px' }}>
                 <div className="input-group" style={{ flex: 1 }}>
                   <label className="label text-xs text-zinc-500 font-bold uppercase mb-2 block">Target Format</label>
-                  <select value={format} onChange={(e) => setFormat(e.target.value as ImageFormat)} className="select" style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#18181b', border: '1px solid #27272a', color: '#fff', outline: 'none' }}>
-                    {availableFormats.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                  </select>
+                  <div className="select-wrapper">
+                    <select value={format} onChange={(e) => setFormat(e.target.value as ImageFormat)} style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#18181b', border: '1px solid #27272a', color: '#fff', outline: 'none' }}>
+                      {availableFormats.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                    <ChevronDown className="select-arrow" size={18} />
+                  </div>
                 </div>
                 {format === 'ico' && (
                   <div className="input-group" style={{ flex: 1 }}>
                     <label className="label text-xs text-zinc-500 font-bold uppercase mb-2 block">ICO Size</label>
-                    <select value={icoSize} onChange={(e) => setIcoSize(e.target.value as IcoSize)} className="select" style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#18181b', border: '1px solid #27272a', color: '#fff', outline: 'none' }}>
-                      {['16','24','32','48','64'].map(s => <option key={s} value={s}>{s} x {s} px</option>)}
-                    </select>
+                    <div className="select-wrapper">
+                      <select value={icoSize} onChange={(e) => setIcoSize(e.target.value as IcoSize)} style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#18181b', border: '1px solid #27272a', color: '#fff', outline: 'none' }}>
+                        {['16','24','32','48','64'].map(s => <option key={s} value={s}>{s} x {s} px</option>)}
+                      </select>
+                      <ChevronDown className="select-arrow" size={18} />
+                    </div>
                   </div>
                 )}
               </div>
@@ -377,13 +384,16 @@ const ConvertTools = () => {
               <div className="space-y-4">
                 <div className="input-group w-full">
                   <label className="label text-xs text-zinc-500 font-bold uppercase mb-2 block">Dimensions</label>
-                  <select value={sizeMode} onChange={(e) => setSizeMode(e.target.value as SizeOption)} className="select" style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#18181b', border: '1px solid #27272a', color: '#fff', outline: 'none' }}>
-                    <option value="original">Original Aspect Ratio</option>
-                    <option value="32">32px</option>
-                    <option value="100">100px</option>
-                    <option value="500">500px</option>
-                    <option value="custom">Manual Resize...</option>
-                  </select>
+                  <div className="select-wrapper">
+                    <select value={sizeMode} onChange={(e) => setSizeMode(e.target.value as SizeOption)} style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#18181b', border: '1px solid #27272a', color: '#fff', outline: 'none' }}>
+                      <option value="original">Original Aspect Ratio</option>
+                      <option value="32">32px</option>
+                      <option value="100">100px</option>
+                      <option value="500">500px</option>
+                      <option value="custom">Manual Resize...</option>
+                    </select>
+                    <ChevronDown className="select-arrow" size={18} />
+                  </div>
                 </div>
                 {sizeMode === 'custom' && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -444,7 +454,6 @@ const ConvertTools = () => {
                         <img src={result} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '12px' }} alt="preview" />
                     </div>
                     <div style={{ padding: '16px' }}>
-                      {/* Nama File Terpotong di Card Hasil */}
                       <p style={{ fontSize: '0.75rem', color: '#e4e4e7', marginBottom: '12px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: '500' }}>{files[index].name}</p>
                       <button onClick={() => saveAs(result, `${files[index].name.split('.')[0]}.${activeMode === 'format' ? format : files[index].originalFormat}`)} style={{ width: '100%', background: '#18181b', color: '#fff', border: '1px solid #27272a', padding: '10px', borderRadius: '10px', fontSize: '0.75rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                         <Download size={14} /> Save

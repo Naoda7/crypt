@@ -18,7 +18,6 @@ const Tools = () => {
             className={`tab-item ${selectedTool === 'watermark' ? 'active' : ''}`}
             aria-label="Watermark Tools"
           >
-            <span className="button-icon">🖼️</span>
             Images Watermark
           </button>
           
@@ -27,7 +26,6 @@ const Tools = () => {
             className={`tab-item ${selectedTool === 'convert' ? 'active' : ''}`}
             aria-label="Convert Tools"
           >
-            <span className="button-icon">🔄</span>
             Images Convert
           </button>
         </div>

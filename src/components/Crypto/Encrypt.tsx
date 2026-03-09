@@ -1,5 +1,5 @@
 import { useState, ChangeEvent } from 'react'
-import { Copy, RefreshCw } from 'lucide-react'
+import { Copy, RefreshCw, ChevronDown } from 'lucide-react'
 
 const ALGORITHMS = ['AES-GCM', 'AES-CBC', 'AES-CTR'] as const
 type AlgorithmType = (typeof ALGORITHMS)[number]
@@ -108,18 +108,20 @@ const Encrypt = () => {
 
       <div className="input-group">
         <label className="label">Select Algorithm</label>
-        <select 
-          value={algorithm}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-            setAlgorithm(e.target.value as AlgorithmType)
-            setResult('') 
-          }}
-          className="select"
-        >
-          {ALGORITHMS.map((algo) => (
-            <option key={algo} value={algo}>{algo}</option>
-          ))}
-        </select>
+        <div className="select-wrapper">
+          <select 
+            value={algorithm}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+              setAlgorithm(e.target.value as AlgorithmType)
+              setResult('') 
+            }}
+          >
+            {ALGORITHMS.map((algo) => (
+              <option key={algo} value={algo}>{algo}</option>
+            ))}
+          </select>
+          <ChevronDown className="select-arrow" size={18} />
+        </div>
       </div>
 
       <div className="input-group">
@@ -174,7 +176,14 @@ const Encrypt = () => {
             {showCopied ? <span style={{ color: 'var(--text-primary)' }}>✓</span> : <Copy size={16} />}
           </button>
           <h3 className="mb-1 text-sm font-semibold">Encrypted Result (Base64):</h3>
-          <pre className="result" style={{ wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
+          <pre className="result" style={{ 
+            wordBreak: 'break-all', 
+            whiteSpace: 'pre-wrap',
+            background: 'var(--surface)', 
+            padding: '1rem', 
+            borderRadius: '6px',
+            overflow: 'auto'
+          }}>
             {result}
           </pre>
         </div>

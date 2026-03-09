@@ -1,212 +1,148 @@
 import { useState, useEffect } from 'react'
-import { NavLink } from 'react-router-dom'
-import { Menu, X } from 'lucide-react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { Menu, X, ChevronDown } from 'lucide-react'
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const location = useLocation()
 
-  // Lock scroll when mobile menu is open
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-    }
+    document.body.style.overflow = isOpen ? 'hidden' : 'unset'
+    return () => { document.body.style.overflow = 'unset' }
+  }, [isOpen])
 
-    // Cleanup function to ensure scroll is restored when component unmounts
-    return () => {
-      document.body.style.overflow = 'unset'
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setIsOpen(false)
+        setOpenDropdown(null)
+      }
     }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
   }, [isOpen])
 
   const toggleMenu = () => setIsOpen(!isOpen)
   
-  // Untuk mobile: toggle dropdown dengan klik
   const toggleDropdown = (dropdown: string) => {
     if (window.innerWidth <= 768) {
       setOpenDropdown(openDropdown === dropdown ? null : dropdown)
     }
   }
 
-  // Untuk desktop: hover
   const handleMouseEnter = (dropdown: string) => {
-    if (window.innerWidth > 768) {
-      setOpenDropdown(dropdown)
-    }
+    if (window.innerWidth > 768) setOpenDropdown(dropdown)
   }
 
   const handleMouseLeave = () => {
-    if (window.innerWidth > 768) {
-      setOpenDropdown(null)
-    }
+    if (window.innerWidth > 768) setOpenDropdown(null)
   }
 
-  // Close menu when window is resized to desktop
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth > 768 && isOpen) {
-        setIsOpen(false)
-      }
-      if (window.innerWidth > 768) {
-        setOpenDropdown(null)
-      }
-    }
+  const isCryptoActive = () => ['/hash', '/hmac', '/bcrypt'].includes(location.pathname)
+  const isUtilsActive = () => ['/cyrillic', '/qrcode', '/tools'].includes(location.pathname)
 
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
-  }, [isOpen])
+  const closeAll = () => {
+    setIsOpen(false)
+    setOpenDropdown(null)
+  }
 
   return (
     <nav className="navbar">
       <div className="navbar-content">
-
-        {/* Logo & Title */}
         <div className="flex items-center gap-3">
           <div className="logo w-8 h-8 bg-primary rounded-lg animate-pulse" />
-          <h1 className="text-xl font-semibold tracking-tighter text-center" style={{ fontWeight: 900, fontStyle: 'italic' }}>CRYPTZ</h1>
+          <h1 className="text-xl font-semibold tracking-tighter" style={{ fontWeight: 900, fontStyle: 'italic' }}>CRYPTZ</h1>
         </div>
 
-        {/* Hamburger Button (Mobile) */}
         <button className="mobile-menu-btn" onClick={toggleMenu} aria-label="Toggle Menu">
           {isOpen ? <X size={28} /> : <Menu size={28} />}
         </button>
 
-        {/* Navigation Links */}
         <div className={`nav-links ${isOpen ? 'open' : ''}`}>
-          {/* Single Menu - ENCRYPT & DECRYPT */}
           <NavLink
             to="/"
-            onClick={() => {
-              setIsOpen(false)
-              setOpenDropdown(null)
-            }}
-            className={({ isActive }) =>
-              `nav-link ${isActive ? 'active' : ''}`
-            }
+            onClick={closeAll}
+            className={({ isActive }) => `nav-link-modern ${isActive ? 'active' : ''}`}
           >
             ENCRYPT & DECRYPT
           </NavLink>
 
-          {/* Dropdown CRYPTOGRAPHY */}
           <div 
             className="dropdown-container"
             onMouseEnter={() => handleMouseEnter('crypto')}
             onMouseLeave={handleMouseLeave}
           >
             <button 
-              className={`dropdown-btn ${openDropdown === 'crypto' ? 'active' : ''}`}
+              className={`dropdown-btn ${isCryptoActive() ? 'parent-active' : ''} ${openDropdown === 'crypto' ? 'open' : ''}`}
               onClick={() => toggleDropdown('crypto')}
             >
-              CRYPTOGRAPHY <span className="dropdown-arrow">▼</span>
+              <span>CRYPTOGRAPHY</span>
+              <ChevronDown className={`dropdown-icon ${openDropdown === 'crypto' ? 'rotated' : ''}`} size={16} />
             </button>
-            <div className={`dropdown-content ${openDropdown === 'crypto' ? 'show' : ''}`}>
-              <NavLink 
-                to="/hash" 
-                onClick={() => {
-                  setIsOpen(false)
-                  setOpenDropdown(null)
-                }}
-                className={({ isActive }) => 
-                  `dropdown-link ${isActive ? 'active' : ''}`
-                }
-              >
-                HASH
-              </NavLink>
-              <NavLink 
-                to="/hmac" 
-                onClick={() => {
-                  setIsOpen(false)
-                  setOpenDropdown(null)
-                }}
-                className={({ isActive }) => 
-                  `dropdown-link ${isActive ? 'active' : ''}`
-                }
-              >
-                HMAC
-              </NavLink>
-              <NavLink 
-                to="/bcrypt" 
-                onClick={() => {
-                  setIsOpen(false)
-                  setOpenDropdown(null)
-                }}
-                className={({ isActive }) => 
-                  `dropdown-link ${isActive ? 'active' : ''}`
-                }
-              >
-                BCRYPT
-              </NavLink>
+            <div className={`dropdown-menu ${openDropdown === 'crypto' ? 'show' : ''}`}>
+              {['HASH', 'HMAC', 'BCRYPT'].map((item) => (
+                <NavLink 
+                  key={item}
+                  to={`/${item.toLowerCase()}`} 
+                  onClick={closeAll}
+                  className={({ isActive }) => `dropdown-item ${isActive ? 'active' : ''}`}
+                >
+                  {item}
+                </NavLink>
+              ))}
             </div>
           </div>
 
-          {/* Dropdown UTILITIES */}
           <div 
             className="dropdown-container"
             onMouseEnter={() => handleMouseEnter('utils')}
             onMouseLeave={handleMouseLeave}
           >
             <button 
-              className={`dropdown-btn ${openDropdown === 'utils' ? 'active' : ''}`}
+              className={`dropdown-btn ${isUtilsActive() ? 'parent-active' : ''} ${openDropdown === 'utils' ? 'open' : ''}`}
               onClick={() => toggleDropdown('utils')}
             >
-              UTILITIES <span className="dropdown-arrow">▼</span>
+              <span>UTILITIES</span>
+              <ChevronDown className={`dropdown-icon ${openDropdown === 'utils' ? 'rotated' : ''}`} size={16} />
             </button>
-            <div className={`dropdown-content ${openDropdown === 'utils' ? 'show' : ''}`}>
-              <NavLink 
-                to="/cyrillic" 
-                onClick={() => {
-                  setIsOpen(false)
-                  setOpenDropdown(null)
-                }}
-                className={({ isActive }) => 
-                  `dropdown-link ${isActive ? 'active' : ''}`
-                }
-              >
-                CYRILLIC
-              </NavLink>
-              <NavLink 
-                to="/qrcode" 
-                onClick={() => {
-                  setIsOpen(false)
-                  setOpenDropdown(null)
-                }}
-                className={({ isActive }) => 
-                  `dropdown-link ${isActive ? 'active' : ''}`
-                }
-              >
-                QR CODE
-              </NavLink>
-              <NavLink 
-                to="/tools" 
-                onClick={() => {
-                  setIsOpen(false)
-                  setOpenDropdown(null)
-                }}
-                className={({ isActive }) => 
-                  `dropdown-link ${isActive ? 'active' : ''}`
-                }
-              >
-                TOOLS
-              </NavLink>
+            <div className={`dropdown-menu ${openDropdown === 'utils' ? 'show' : ''}`}>
+              <NavLink to="/cyrillic" onClick={closeAll} className={({ isActive }) => `dropdown-item ${isActive ? 'active' : ''}`}>CYRILLIC</NavLink>
+              <NavLink to="/qrcode" onClick={closeAll} className={({ isActive }) => `dropdown-item ${isActive ? 'active' : ''}`}>QR CODE</NavLink>
+              <NavLink to="/tools" onClick={closeAll} className={({ isActive }) => `dropdown-item ${isActive ? 'active' : ''}`}>TOOLS</NavLink>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Overlay when mobile menu is open */}
-      {isOpen && <div className="mobile-menu-overlay" onClick={() => setIsOpen(false)} />}
+      {isOpen && <div className="mobile-menu-overlay" onClick={closeAll} />}
 
       <style>{`
+        .nav-link-modern {
+          color: var(--text-secondary);
+          text-decoration: none;
+          font-weight: 500;
+          padding: 0.5rem 0;
+          transition: all 0.2s ease;
+        }
+
+        .nav-link-modern:hover, .nav-link-modern.active {
+          color: var(--primary);
+        }
+
+        .nav-link-modern.active {
+          font-weight: 600;
+          text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+        }
+
         .dropdown-container {
           position: relative;
-          display: inline-block;
         }
 
         .dropdown-btn {
           background: none;
           border: none;
-          color: var(--text-primary);
+          color: var(--text-secondary);
           font-family: inherit;
           font-size: 1rem;
           font-weight: 500;
@@ -214,162 +150,121 @@ const Navbar = () => {
           padding: 0.5rem 0;
           display: flex;
           align-items: center;
-          gap: 0.2rem;
+          gap: 0.3rem;
           transition: all 0.2s ease;
-          opacity: 0.8;
         }
 
-        .dropdown-btn:hover {
-          opacity: 1;
-          color: white;
-          transform: translateY(-1px);
-          text-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
-        }
-
-        .dropdown-btn.active {
+        .dropdown-btn:hover, .dropdown-btn.parent-active {
           color: var(--primary);
-          opacity: 1;
         }
 
-        .dropdown-arrow {
-          font-size: 0.7rem;
-          transition: transform 0.3s;
+        .dropdown-icon {
+          transition: transform 0.2s ease;
           opacity: 0.7;
         }
 
-        .dropdown-container:hover .dropdown-arrow {
+        .dropdown-icon.rotated {
           transform: rotate(180deg);
-          opacity: 1;
         }
 
-        .dropdown-content {
+        .dropdown-menu {
           position: absolute;
           top: 100%;
           left: 50%;
           transform: translateX(-50%) translateY(10px);
-          min-width: 160px;
+          min-width: 180px;
           background: var(--surface);
           border: 1px solid var(--border);
-          border-radius: 8px;
-          padding: 0.5rem 0;
+          border-radius: 12px;
+          padding: 0.6rem;
           opacity: 0;
           visibility: hidden;
-          transition: all 0.2s;
-          z-index: 1000;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+          transition: all 0.2s ease;
+          z-index: 1200;
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+          backdrop-filter: blur(10px);
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
         }
 
-        .dropdown-content.show {
+        .dropdown-menu.show {
           opacity: 1;
           visibility: visible;
           transform: translateX(-50%) translateY(5px);
         }
 
-        .dropdown-link {
+        .dropdown-item {
           display: block;
-          padding: 0.7rem 1.5rem;
+          padding: 0.75rem 1.2rem;
           color: var(--text-secondary);
           text-decoration: none;
           font-size: 0.95rem;
-          transition: all 0.2s;
-          white-space: nowrap;
-          border-left: 3px solid transparent;
+          transition: all 0.2s ease;
+          border-radius: 8px;
         }
 
-        .dropdown-link:hover {
-          background: var(--background);
-          color: white;
-          border-left: 3px solid var(--primary);
-          padding-left: 1.8rem;
-        }
-
-        .dropdown-link.active {
-          background: var(--background);
+        .dropdown-item:hover {
+          background: rgba(255, 255, 255, 0.05);
           color: var(--primary);
-          border-left: 3px solid var(--primary);
-          font-weight: 500;
         }
 
-        /* Mobile menu overlay */
+        .dropdown-item.active {
+          background: rgba(255, 255, 255, 0.08);
+          color: var(--primary);
+          font-weight: 500;
+          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+
         .mobile-menu-overlay {
           position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          inset: 0;
           background: rgba(0, 0, 0, 0.5);
-          backdrop-filter: blur(3px);
+          backdrop-filter: blur(5px);
           z-index: 1040;
-          display: none;
+        }
+
+        @media (min-width: 769px) {
+          .nav-links {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+          }
         }
 
         @media (max-width: 768px) {
-          .mobile-menu-overlay {
-            display: block;
-          }
-
-          .dropdown-container {
+          .nav-links {
+            display: none;
+            flex-direction: column;
+            position: absolute;
+            top: 100%;
+            left: 0;
             width: 100%;
-          }
-
-          .dropdown-btn {
-            width: 100%;
-            justify-content: center;
-            padding: 1rem;
-            opacity: 1;
             background: var(--surface);
-            border-radius: 6px;
+            padding: 1rem;
+            gap: 1rem;
           }
 
-          .dropdown-btn:hover {
-            background: var(--border);
-            transform: none;
-            text-shadow: none;
-          }
+          .nav-links.open { display: flex; }
 
-          .dropdown-container:hover .dropdown-arrow {
-            transform: none;
-          }
-
-          .dropdown-content {
+          .dropdown-menu {
             position: static;
             transform: none;
             opacity: 1;
             visibility: visible;
             display: none;
             width: 100%;
-            margin-top: 0.5rem;
-            border: 1px solid var(--border);
-            background: var(--background);
             box-shadow: none;
+            margin-top: 0.5rem;
+            gap: 8px;
           }
 
-          .dropdown-content.show {
-            display: block;
-            transform: none;
-          }
-
-          .dropdown-link {
+          .dropdown-menu.show { display: flex; }
+          
+          .dropdown-btn, .nav-link-modern, .dropdown-item {
+            width: 100%;
+            justify-content: center;
             text-align: center;
-            padding: 1rem;
-            border-bottom: 1px solid var(--border);
-            border-left: none;
-          }
-
-          .dropdown-link:hover {
-            background: var(--surface);
-            border-left: none;
-            padding-left: 1rem;
-          }
-
-          .dropdown-link:last-child {
-            border-bottom: none;
-          }
-
-          .dropdown-link.active {
-            border-left: none;
-            background: var(--surface);
-            border-bottom: 2px solid var(--primary);
           }
         }
       `}</style>

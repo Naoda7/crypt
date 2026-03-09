@@ -249,33 +249,42 @@ const QRCodeGenerator = () => {
             <div className="grid-2">
               <div className="input-group">
                 <label className="label-text">Shape Style</label>
-                <select value={options.dotType} onChange={(e) => setOptions({ ...options, dotType: e.target.value as DotType })} className="select">
-                  <option value="square">Square</option>
-                  <option value="dots">Dots</option>
-                  <option value="rounded">Rounded</option>
-                  <option value="extra-rounded">Extra Rounded</option>
-                  <option value="classy">Classy</option>
-                  <option value="classy-rounded">Classy Rounded</option>
-                </select>
+                <div className="select-wrapper">
+                  <select value={options.dotType} onChange={(e) => setOptions({ ...options, dotType: e.target.value as DotType })}>
+                    <option value="square">Square</option>
+                    <option value="dots">Dots</option>
+                    <option value="rounded">Rounded</option>
+                    <option value="extra-rounded">Extra Rounded</option>
+                    <option value="classy">Classy</option>
+                    <option value="classy-rounded">Classy Rounded</option>
+                  </select>
+                  <ChevronDown className="select-arrow" size={18} />
+                </div>
               </div>
             </div>
 
             <div className="grid-2">
               <div className="input-group">
                 <label className="label-text">Corner Frame</label>
-                <select value={options.cornerSquareType} onChange={(e) => setOptions({ ...options, cornerSquareType: e.target.value as CornerSquareType })} className="select">
-                  <option value="square">Square</option>
-                  <option value="dot">Dot</option>
-                  <option value="rounded">Rounded</option>
-                  <option value="extra-rounded">Extra Rounded</option>
-                </select>
+                <div className="select-wrapper">
+                  <select value={options.cornerSquareType} onChange={(e) => setOptions({ ...options, cornerSquareType: e.target.value as CornerSquareType })}>
+                    <option value="square">Square</option>
+                    <option value="dot">Dot</option>
+                    <option value="rounded">Rounded</option>
+                    <option value="extra-rounded">Extra Rounded</option>
+                  </select>
+                  <ChevronDown className="select-arrow" size={18} />
+                </div>
               </div>
               <div className="input-group">
                 <label className="label-text">Corner Dot</label>
-                <select value={options.cornerDotType} onChange={(e) => setOptions({ ...options, cornerDotType: e.target.value as CornerDotType })} className="select">
-                  <option value="square">Square</option>
-                  <option value="dot">Dot</option>
-                </select>
+                <div className="select-wrapper">
+                  <select value={options.cornerDotType} onChange={(e) => setOptions({ ...options, cornerDotType: e.target.value as CornerDotType })}>
+                    <option value="square">Square</option>
+                    <option value="dot">Dot</option>
+                  </select>
+                  <ChevronDown className="select-arrow" size={18} />
+                </div>
               </div>
             </div>
 
@@ -317,31 +326,40 @@ const QRCodeGenerator = () => {
               </div>
               <div className="input-group">
                 <label className="label-text">Logo Scale</label>
-                <select value={options.logoSize} onChange={(e) => setOptions({ ...options, logoSize: parseFloat(e.target.value) })} className="select">
-                  <option value={0.1}>Small (10%)</option>
-                  <option value={0.2}>Medium (20%)</option>
-                  <option value={0.3}>Large (30%)</option>
-                </select>
+                <div className="select-wrapper">
+                  <select value={options.logoSize} onChange={(e) => setOptions({ ...options, logoSize: parseFloat(e.target.value) })}>
+                    <option value={0.1}>Small (10%)</option>
+                    <option value={0.2}>Medium (20%)</option>
+                    <option value={0.3}>Large (30%)</option>
+                  </select>
+                  <ChevronDown className="select-arrow" size={18} />
+                </div>
               </div>
               <div className="input-group">
                 <label className="label-text">Error Correction</label>
-                <select value={options.errorCorrectionLevel} onChange={(e) => setOptions({ ...options, errorCorrectionLevel: e.target.value as ErrorCorrectionLevel })} className="select">
-                  <option value="L">Low (7%)</option>
-                  <option value="M">Medium (15%)</option>
-                  <option value="Q">Quartile (25%)</option>
-                  <option value="H">High (30%)</option>
-                </select>
+                <div className="select-wrapper">
+                  <select value={options.errorCorrectionLevel} onChange={(e) => setOptions({ ...options, errorCorrectionLevel: e.target.value as ErrorCorrectionLevel })}>
+                    <option value="L">Low (7%)</option>
+                    <option value="M">Medium (15%)</option>
+                    <option value="Q">Quartile (25%)</option>
+                    <option value="H">High (30%)</option>
+                  </select>
+                  <ChevronDown className="select-arrow" size={18} />
+                </div>
               </div>
             </div>
 
             <div className="grid-2">
               <div className="input-group">
                 <label className="label-text">Format</label>
-                <select value={options.imageFormat} onChange={(e) => setOptions({ ...options, imageFormat: e.target.value as Extension })} className="select">
-                  <option value="png">PNG</option>
-                  <option value="jpeg">JPEG</option>
-                  <option value="svg">SVG</option>
-                </select>
+                <div className="select-wrapper">
+                  <select value={options.imageFormat} onChange={(e) => setOptions({ ...options, imageFormat: e.target.value as Extension })}>
+                    <option value="png">PNG</option>
+                    <option value="jpeg">JPEG</option>
+                    <option value="svg">SVG</option>
+                  </select>
+                  <ChevronDown className="select-arrow" size={18} />
+                </div>
               </div>
               <div className="input-group">
                 <label className="label-text">Size (px) <span className="text-xs opacity-50">(100-3000)</span></label>
@@ -378,7 +396,7 @@ const QRCodeGenerator = () => {
                       setOptions({ ...options, size: 500 }); 
                     }
                   }}
-                  className="select" 
+                  className="input" 
                 />
               </div>
             </div>

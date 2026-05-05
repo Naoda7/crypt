@@ -7,11 +7,13 @@ const Navbar = () => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const location = useLocation()
 
+  // Lock scroll saat mobile menu terbuka
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : 'unset'
     return () => { document.body.style.overflow = 'unset' }
   }, [isOpen])
 
+  // Reset state saat layar di-resize ke desktop
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth > 768) {
@@ -21,7 +23,7 @@ const Navbar = () => {
     }
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [isOpen])
+  }, [])
 
   const toggleMenu = () => setIsOpen(!isOpen)
   
@@ -48,17 +50,20 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="navbar">
+    <nav className="navbar" style={{ position: 'sticky', top: 0, zIndex: 2000 }}>
       <div className="navbar-content">
+        {/* Logo Section */}
         <div className="flex items-center gap-3">
           <div className="logo w-8 h-8 bg-primary rounded-lg animate-pulse" />
           <h1 className="text-xl font-semibold tracking-tighter" style={{ fontWeight: 900, fontStyle: 'italic' }}>CRYPTZ</h1>
         </div>
 
-        <button className="mobile-menu-btn" onClick={toggleMenu} aria-label="Toggle Menu">
+        {/* Mobile Toggle Button */}
+        <button className="mobile-menu-btn" onClick={toggleMenu} aria-label="Toggle Menu" style={{ zIndex: 2100 }}>
           {isOpen ? <X size={28} /> : <Menu size={28} />}
         </button>
 
+        {/* Navigation Links */}
         <div className={`nav-links ${isOpen ? 'open' : ''}`}>
           <NavLink
             to="/"
@@ -68,6 +73,7 @@ const Navbar = () => {
             ENCRYPT & DECRYPT
           </NavLink>
 
+          {/* Dropdown Cryptography */}
           <div 
             className="dropdown-container"
             onMouseEnter={() => handleMouseEnter('crypto')}
@@ -94,6 +100,7 @@ const Navbar = () => {
             </div>
           </div>
 
+          {/* Dropdown Utilities */}
           <div 
             className="dropdown-container"
             onMouseEnter={() => handleMouseEnter('utils')}
@@ -115,6 +122,7 @@ const Navbar = () => {
         </div>
       </div>
 
+      {/* Overlay Background */}
       {isOpen && <div className="mobile-menu-overlay" onClick={closeAll} />}
 
       <style>{`
@@ -124,6 +132,9 @@ const Navbar = () => {
           font-weight: 500;
           padding: 0.5rem 0;
           transition: all 0.2s ease;
+          display: flex;
+          justify-content: center;
+          align-items: center;
         }
 
         .nav-link-modern:hover, .nav-link-modern.active {
@@ -135,8 +146,12 @@ const Navbar = () => {
           text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
         }
 
+        /* Container Dropdown harus relatif agar menu merujuk padanya */
         .dropdown-container {
           position: relative;
+          display: flex;
+          flex-direction: column;
+          align-items: center; /* Kunci agar tombol & menu sejajar di tengah */
         }
 
         .dropdown-btn {
@@ -150,8 +165,10 @@ const Navbar = () => {
           padding: 0.5rem 0;
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 0.3rem;
           transition: all 0.2s ease;
+          width: 100%;
         }
 
         .dropdown-btn:hover, .dropdown-btn.parent-active {
@@ -167,11 +184,12 @@ const Navbar = () => {
           transform: rotate(180deg);
         }
 
+        /* Desktop Dropdown Style (Floating) */
         .dropdown-menu {
           position: absolute;
           top: 100%;
           left: 50%;
-          transform: translateX(-50%) translateY(10px);
+          transform: translateX(-50%) translateY(10px); /* Geser -50% untuk center presisi */
           min-width: 180px;
           background: var(--surface);
           border: 1px solid var(--border);
@@ -179,13 +197,13 @@ const Navbar = () => {
           padding: 0.6rem;
           opacity: 0;
           visibility: hidden;
-          transition: all 0.2s ease;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
           z-index: 1200;
           box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
           backdrop-filter: blur(10px);
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 4px;
         }
 
         .dropdown-menu.show {
@@ -202,6 +220,7 @@ const Navbar = () => {
           font-size: 0.95rem;
           transition: all 0.2s ease;
           border-radius: 8px;
+          text-align: center;
         }
 
         .dropdown-item:hover {
@@ -213,7 +232,6 @@ const Navbar = () => {
           background: rgba(255, 255, 255, 0.08);
           color: var(--primary);
           font-weight: 500;
-          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
         }
 
         .mobile-menu-overlay {
@@ -224,47 +242,56 @@ const Navbar = () => {
           z-index: 1040;
         }
 
+        /* RESPONSIVE LAYOUT */
         @media (min-width: 769px) {
           .nav-links {
             display: flex;
-            gap: 2rem;
+            gap: 2.5rem;
             align-items: center;
           }
+          .dropdown-container { width: auto; }
+          .dropdown-btn { width: auto; }
         }
 
         @media (max-width: 768px) {
           .nav-links {
             display: none;
             flex-direction: column;
-            position: absolute;
-            top: 100%;
+            position: fixed;
+            top: 0;
             left: 0;
             width: 100%;
+            height: 100dvh;
             background: var(--surface);
-            padding: 1rem;
-            gap: 1rem;
+            padding: 6rem 2rem 2rem 2rem;
+            gap: 1.5rem;
+            z-index: 1050;
+            overflow-y: auto;
+            align-items: center; /* Memastikan semua elemen menu berada di tengah layar */
           }
 
           .nav-links.open { display: flex; }
 
+          /* Mobile Dropdown Style (In-flow) */
           .dropdown-menu {
-            position: static;
-            transform: none;
+            position: static; /* Hilangkan posisi absolute agar tidak melayang */
+            transform: none !important; /* Hapus transform di mobile */
             opacity: 1;
             visibility: visible;
             display: none;
             width: 100%;
+            max-width: 280px;
             box-shadow: none;
+            border: none;
+            background: rgba(255, 255, 255, 0.03);
             margin-top: 0.5rem;
-            gap: 8px;
           }
 
           .dropdown-menu.show { display: flex; }
           
-          .dropdown-btn, .nav-link-modern, .dropdown-item {
+          .nav-link-modern, .dropdown-btn {
+            font-size: 1.25rem;
             width: 100%;
-            justify-content: center;
-            text-align: center;
           }
         }
       `}</style>

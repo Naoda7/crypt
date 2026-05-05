@@ -95,12 +95,22 @@ const CyrillicConverter: React.FC = () => {
         Industry standard for Cyrillic Homoglyph & Punycode DNS conversion.
       </p>
 
-      {/* Navigasi Mode */}
-      <div className="flex-gap" style={{ justifyContent: 'center', marginBottom: '1.5rem', alignItems: 'center' }}>
+      {/* Navigasi Mode - FIXED FOR MOBILE */}
+      <div 
+        className="flex-gap" 
+        style={{ 
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'center', 
+          gap: '10px',
+          marginBottom: '1.5rem', 
+          alignItems: 'center' 
+        }}
+      >
         <button
           onClick={() => { setMode('latinToCyrillic'); setInput(''); }}
           className={`btn ${mode === 'latinToCyrillic' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ minWidth: '140px' }}
+          style={{ flex: '1 1 auto', minWidth: '100px', maxWidth: '160px' }}
         >
           Latin to Cyr
         </button>
@@ -108,7 +118,7 @@ const CyrillicConverter: React.FC = () => {
         <button
           onClick={() => { setMode('cyrillicToLatin'); setInput(''); }}
           className={`btn ${mode === 'cyrillicToLatin' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ minWidth: '140px' }}
+          style={{ flex: '1 1 auto', minWidth: '100px', maxWidth: '160px' }}
         >
           Cyr to Latin
         </button>
@@ -116,9 +126,16 @@ const CyrillicConverter: React.FC = () => {
         <button
           onClick={() => { setMode('punycode'); setInput(''); }}
           className={`btn ${mode === 'punycode' ? 'btn-primary' : 'btn-secondary'}`}
-          style={{ minWidth: '140px' }}
+          style={{ 
+            flex: '1 1 auto', 
+            minWidth: '100px', 
+            maxWidth: '160px',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}
         >
-          <Globe size={16} style={{ marginRight: '6px' }} />
+          <Globe size={16} style={{ marginRight: '6px', flexShrink: 0 }} />
           Punycode
         </button>
       </div>
@@ -157,7 +174,7 @@ const CyrillicConverter: React.FC = () => {
                     onClick={handleSwap} 
                     className="copy-button" 
                     style={{ 
-                      position: 'static', // Memaksa tombol sejajar secara flex, bukan bertumpuk absolute
+                      position: 'static', 
                       display: 'flex', 
                       alignItems: 'center', 
                       gap: '6px' 

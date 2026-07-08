@@ -420,17 +420,6 @@ const WatermarkText = () => {
               </div>
             </div>
           </div>
-
-          <div className="input-group">
-            <label className="label">Output File Name (Optional)</label>
-            <input
-              type="text"
-              value={customFileName}
-              onChange={(e) => setCustomFileName(e.target.value)}
-              className="input"
-              placeholder="Example: Img (will result in Img_01, Img_02, etc.)"
-            />
-          </div>
           
           <div className="input-group">
             <label className="label">Watermark Text</label>
@@ -531,6 +520,17 @@ const WatermarkText = () => {
               </select>
               <ChevronDown className="select-arrow" size={18} />
             </div>
+          </div>
+          
+          <div className="input-group">
+            <label className="label">Output File Name (Optional)</label>
+            <input
+              type="text"
+              value={customFileName}
+              onChange={(e) => setCustomFileName(e.target.value)}
+              className="input"
+              placeholder="Enter layout output image name..."
+            />
           </div>
 
           <button

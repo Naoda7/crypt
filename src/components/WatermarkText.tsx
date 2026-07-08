@@ -529,7 +529,7 @@ const WatermarkText = () => {
               value={customFileName}
               onChange={(e) => setCustomFileName(e.target.value)}
               className="input"
-              placeholder="Enter layout output image name..."
+              placeholder="Enter output image name..."
             />
           </div>
 

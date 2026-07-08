@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import JSZip from 'jszip'
 import { saveAs } from 'file-saver'
-import { UploadCloud, X, ChevronDown } from 'lucide-react'
+import { UploadCloud, X, ChevronDown, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react'
 
 interface FileItem {
   id: string
@@ -15,6 +15,7 @@ const WatermarkText = () => {
   const [watermarkedResults, setWatermarkedResults] = useState<string[]>([])
   const [selectedResults, setSelectedResults] = useState<number[]>([])
   const [text, setText] = useState('')
+  const [customFileName, setCustomFileName] = useState('')
   const [fontColor, setFontColor] = useState('#000000')
   const [fontSize, setFontSize] = useState(24)
   const [fontFamily, setFontFamily] = useState('Arial')
@@ -23,7 +24,13 @@ const WatermarkText = () => {
   const [opacity, setOpacity] = useState(0.5)
   const [position, setPosition] = useState('center')
   const [isDragging, setIsDragging] = useState(false)
+  
+  const [zoomScale, setZoomScale] = useState<number>(1)
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false)
+  const [modalZoomScale, setModalZoomScale] = useState<number>(1)
+
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const modalCanvasRef = useRef<HTMLCanvasElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fontOptions = [
@@ -34,6 +41,17 @@ const WatermarkText = () => {
     { name: 'Bold Impact', value: 'Impact' },
     { name: 'Handwritten (Brush Script MT)', value: 'Brush Script MT, cursive' },
   ];
+
+  useEffect(() => {
+    if (isModalOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isModalOpen])
 
   const getTextPosition = useCallback((imgWidth: number, imgHeight: number, textWidth: number) => {
     switch(position) {
@@ -100,21 +118,30 @@ const WatermarkText = () => {
     setSelectedResults([])
   }, [files, generatePreview])
 
-  useEffect(() => {
-    if (selectedFile) {
+  const drawToCanvas = useCallback((canvasElement: HTMLCanvasElement | null) => {
+    if (selectedFile && canvasElement) {
       generatePreview(selectedFile.file).then((preview) => {
         const img = new Image()
         img.src = preview
         img.onload = () => {
-          const canvas = canvasRef.current!
-          const ctx = canvas.getContext('2d')!
-          canvas.width = img.width
-          canvas.height = img.height
+          const ctx = canvasElement.getContext('2d')!
+          canvasElement.width = img.width
+          canvasElement.height = img.height
           ctx.drawImage(img, 0, 0)
         }
       })
     }
   }, [selectedFile, generatePreview])
+
+  useEffect(() => {
+    drawToCanvas(canvasRef.current)
+  }, [selectedFile, generatePreview, drawToCanvas])
+
+  useEffect(() => {
+    if (isModalOpen) {
+      drawToCanvas(modalCanvasRef.current)
+    }
+  }, [isModalOpen, selectedFile, generatePreview, drawToCanvas])
 
   const toggleResultSelection = useCallback((index: number) => {
     setSelectedResults(prev => prev.includes(index) 
@@ -131,18 +158,34 @@ const WatermarkText = () => {
     )
   }, [watermarkedResults.length])
 
+  const getFileExtension = (originalName: string) => {
+    const parts = originalName.split('.')
+    return parts.length > 1 ? `.${parts.pop()}` : '.png'
+  }
+
   const downloadSelected = useCallback(async () => {
     const zip = new JSZip()
-    const folder = zip.folder("WMImg")
-    selectedResults.forEach(index => {
+    const zipName = customFileName.trim() ? `${customFileName.trim()}.zip` : "WM-images.zip"
+    const folder = zip.folder(customFileName.trim() || "WMImg")
+    
+    selectedResults.forEach((index, seqIndex) => {
       const result = watermarkedResults[index]
-      const fileName = `watermarked-${files[index].name}`
+      const ext = getFileExtension(files[index].name)
+      
+      let fileName = ""
+      if (customFileName.trim()) {
+        const padIndex = String(seqIndex + 1).padStart(2, '0')
+        fileName = `${customFileName.trim()}_${padIndex}${ext}`
+      } else {
+        fileName = `watermarked-${files[index].name}`
+      }
+
       const base64Data = result.split(',')[1]
       folder?.file(fileName, base64Data, { base64: true })
     })
     const content = await zip.generateAsync({ type: "blob" })
-    saveAs(content, "WM-images.zip")
-  }, [selectedResults, watermarkedResults, files])
+    saveAs(content, zipName)
+  }, [selectedResults, watermarkedResults, files, customFileName])
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -168,6 +211,26 @@ const WatermarkText = () => {
       if (!selectedFile) setSelectedFile(newFiles[0])
     }
   }, [selectedFile])
+
+  const handleZoomIn = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setZoomScale(prev => Math.min(prev + 0.25, 3))
+  }
+
+  const handleZoomOut = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setZoomScale(prev => Math.max(prev - 0.25, 0.5))
+  }
+
+  const handleModalZoomIn = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setModalZoomScale(prev => Math.min(prev + 0.25, 4))
+  }
+
+  const handleModalZoomOut = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setModalZoomScale(prev => Math.max(prev - 0.25, 0.25))
+  }
 
   return (
     <div className="space-y-6">
@@ -232,41 +295,26 @@ const WatermarkText = () => {
               {files.map(file => (
                 <div 
                   key={file.id} 
+                  onClick={() => setSelectedFile(file)}
                   style={{ 
                     display: 'flex', 
                     justifyContent: 'space-between', 
                     alignItems: 'center', 
                     fontSize: '0.8rem', 
-                    background: '#18181b', 
+                    background: selectedFile?.id === file.id ? '#27272a' : '#18181b', 
                     padding: '10px 14px', 
                     borderRadius: '10px', 
-                    border: '1px solid #27272a', 
-                    gap: '12px' 
+                    border: selectedFile?.id === file.id ? '1px solid #3f3f46' : '1px solid #27272a', 
+                    gap: '12px',
+                    cursor: 'pointer'
                   }}
                 >
-                  <span 
-                    style={{ 
-                      color: '#e4e4e7', 
-                      fontWeight: '500', 
-                      overflow: 'hidden', 
-                      textOverflow: 'ellipsis', 
-                      whiteSpace: 'nowrap', 
-                      flex: 1 
-                    }}
-                  >
+                  <span style={{ color: '#e4e4e7', fontWeight: '500', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                     {file.name}
                   </span>
                   <button 
                     onClick={(e) => { e.stopPropagation(); removeFile(file.id); }} 
-                    style={{ 
-                      color: '#71717a', 
-                      background: 'none', 
-                      border: 'none', 
-                      cursor: 'pointer', 
-                      display: 'flex', 
-                      flexShrink: 0,
-                      padding: '2px'
-                    }}
+                    style={{ color: '#71717a', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexShrink: 0, padding: '2px' }}
                     className="hover:text-red-400 transition-colors"
                   >
                     <X size={14} />
@@ -284,41 +332,104 @@ const WatermarkText = () => {
             className="input-group"
             style={{ 
               position: 'sticky', 
-              top: '0px', 
+              top: '65px', 
               zIndex: 40, 
               background: '#09090b', 
-              paddingTop: '10px',
+              padding: '10px',
               paddingBottom: '16px'
             }}
           >
-            <label className="label">Live Preview</label>
+            <div className="flex justify-between items-center mb-2">
+              <label className="label mb-0">Live Preview</label>
+              
+              <div className="flex items-center gap-1" style={{ background: '#18181b', padding: '4px', borderRadius: '8px', border: '1px solid #27272a' }}>
+                <button 
+                  onClick={handleZoomOut}
+                  title="Zoom Out"
+                  style={{ background: 'none', border: 'none', color: '#a1a1aa', padding: '6px', cursor: 'pointer', borderRadius: '4px' }}
+                  className="hover:bg-zinc-800 hover:text-white transition-colors"
+                >
+                  <ZoomOut size={16} />
+                </button>
+                <span style={{ fontSize: '0.75rem', minWidth: '36px', textAlign: 'center', color: '#e4e4e7', fontWeight: '500' }}>
+                  {Math.round(zoomScale * 100)}%
+                </span>
+                <button 
+                  onClick={handleZoomIn}
+                  title="Zoom In"
+                  style={{ background: 'none', border: 'none', color: '#a1a1aa', padding: '6px', cursor: 'pointer', borderRadius: '4px' }}
+                  className="hover:bg-zinc-800 hover:text-white transition-colors"
+                >
+                  <ZoomIn size={16} />
+                </button>
+                <div style={{ width: '1px', height: '16px', background: '#27272a', margin: '0 4px' }} />
+                <button 
+                  onClick={() => setIsModalOpen(true)}
+                  title="Tampilan Ukuran Real"
+                  style={{ background: 'none', border: 'none', color: '#a1a1aa', padding: '6px', cursor: 'pointer', borderRadius: '4px' }}
+                  className="hover:bg-zinc-800 hover:text-white transition-colors"
+                >
+                  <Maximize2 size={15} />
+                </button>
+              </div>
+            </div>
+
             <div 
               className="preview-container"
+              onClick={() => setIsModalOpen(true)}
               style={{
                 boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.4)',
                 border: '1px solid #27272a',
                 borderRadius: '12px',
                 overflow: 'hidden',
-                maxHeight: '250px',
+                height: '320px',
+                width: '100%',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                background: '#111'
+                background: '#111',
+                padding: '16px',
+                cursor: 'pointer',
+                position: 'relative'
               }}
             >
-              <canvas 
-                ref={canvasRef} 
-                className="preview-canvas" 
-                style={{ 
-                  display: 'block',
-                  maxWidth: '100%',
-                  maxHeight: '250px',
-                  width: 'auto',
-                  height: 'auto',
-                  objectFit: 'contain'
-                }} 
-              />
+              <div 
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  transform: `scale(${zoomScale})`,
+                  transition: 'transform 0.15s ease-out',
+                  transformOrigin: 'center center'
+                }}
+              >
+                <canvas 
+                  ref={canvasRef} 
+                  className="preview-canvas" 
+                  style={{ 
+                    display: 'block',
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    width: 'auto',
+                    height: 'auto',
+                    objectFit: 'contain'
+                  }} 
+                />
+              </div>
             </div>
+          </div>
+
+          <div className="input-group">
+            <label className="label">Output File Name (Optional)</label>
+            <input
+              type="text"
+              value={customFileName}
+              onChange={(e) => setCustomFileName(e.target.value)}
+              className="input"
+              placeholder="Example: Img (will result in Img_01, Img_02, etc.)"
+            />
           </div>
           
           <div className="input-group">
@@ -478,7 +589,15 @@ const WatermarkText = () => {
                       onClick={() => {
                         const link = document.createElement('a')
                         link.href = result
-                        link.download = `WMImg-${files[index].name}`
+                        const ext = getFileExtension(files[index].name)
+                        
+                        if (customFileName.trim()) {
+                          const padIndex = String(index + 1).padStart(2, '0')
+                          link.download = `${customFileName.trim()}_${padIndex}${ext}`
+                        } else {
+                          link.download = `WMImg-${files[index].name}`
+                        }
+                        
                         link.click()
                       }}
                       className="btn btn-primary btn-sm"
@@ -489,6 +608,100 @@ const WatermarkText = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {isModalOpen && (
+        <div 
+          onClick={() => setIsModalOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 9999,
+            background: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '20px'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()} 
+            style={{
+              position: 'absolute',
+              top: '24px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              background: '#18181b',
+              padding: '6px 14px',
+              borderRadius: '24px',
+              border: '1px solid #27272a',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
+            }}
+          >
+            <button 
+              onClick={handleModalZoomOut}
+              style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', display: 'flex' }}
+              className="hover:text-white"
+            >
+              <ZoomOut size={18} />
+            </button>
+            <span style={{ fontSize: '0.85rem', color: '#e4e4e7', fontWeight: '600', minWidth: '45px', textAlign: 'center' }}>
+              {Math.round(modalZoomScale * 100)}%
+            </span>
+            <button 
+              onClick={handleModalZoomIn}
+              style={{ background: 'none', border: 'none', color: '#a1a1aa', cursor: 'pointer', display: 'flex' }}
+              className="hover:text-white"
+            >
+              <ZoomIn size={18} />
+            </button>
+            <div style={{ width: '1px', height: '16px', background: '#27272a', margin: '0 4px' }} />
+            <button 
+              onClick={() => setIsModalOpen(false)}
+              style={{ background: 'none', border: 'none', color: '#71717a', cursor: 'pointer', display: 'flex' }}
+              className="hover:text-red-400"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '95%',
+              maxHeight: '85%',
+              overflow: 'auto',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'flex-start',
+              borderRadius: '8px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+            }}
+            className="custom-scrollbar"
+          >
+            <div
+              style={{
+                transform: `scale(${modalZoomScale})`,
+                transformOrigin: 'top center',
+                transition: 'transform 0.1s ease-out'
+              }}
+            >
+              <canvas 
+                ref={modalCanvasRef}
+                style={{
+                  display: 'block',
+                  maxWidth: '100%',
+                  height: 'auto'
+                }}
+              />
+            </div>
           </div>
         </div>
       )}

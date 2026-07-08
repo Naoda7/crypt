@@ -7,13 +7,11 @@ const Navbar = () => {
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
   const location = useLocation()
 
-  // Lock scroll saat mobile menu terbuka
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : 'unset'
     return () => { document.body.style.overflow = 'unset' }
   }, [isOpen])
 
-  // Reset state saat layar di-resize ke desktop
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth > 768) {
@@ -55,7 +53,12 @@ const Navbar = () => {
         {/* Logo Section */}
         <div className="flex items-center gap-3">
           <div className="logo w-8 h-8 bg-primary rounded-lg animate-pulse" />
-          <h1 className="text-xl font-semibold tracking-tighter" style={{ fontWeight: 900, fontStyle: 'italic' }}>CRYPTZ</h1>
+          <h1 
+            className="text-xl font-black" 
+            style={{ fontWeight: 900, fontStyle: 'italic', letterSpacing: '-0.07em' }}
+          >
+            CRYPTZ
+          </h1>
         </div>
 
         {/* Mobile Toggle Button */}
@@ -122,7 +125,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Overlay Background */}
       {isOpen && <div className="mobile-menu-overlay" onClick={closeAll} />}
 
       <style>{`
@@ -146,12 +148,11 @@ const Navbar = () => {
           text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
         }
 
-        /* Container Dropdown harus relatif agar menu merujuk padanya */
         .dropdown-container {
           position: relative;
           display: flex;
           flex-direction: column;
-          align-items: center; /* Kunci agar tombol & menu sejajar di tengah */
+          align-items: center;
         }
 
         .dropdown-btn {
@@ -171,8 +172,14 @@ const Navbar = () => {
           width: 100%;
         }
 
-        .dropdown-btn:hover, .dropdown-btn.parent-active {
+        .dropdown-btn:hover {
           color: var(--primary);
+        }
+
+        /* Ditambahkan font-weight agar setara dengan .nav-link-modern.active */
+        .dropdown-btn.parent-active {
+          color: var(--primary);
+          font-weight: 600;
         }
 
         .dropdown-icon {
@@ -184,12 +191,11 @@ const Navbar = () => {
           transform: rotate(180deg);
         }
 
-        /* Desktop Dropdown Style (Floating) */
         .dropdown-menu {
           position: absolute;
           top: 100%;
           left: 50%;
-          transform: translateX(-50%) translateY(10px); /* Geser -50% untuk center presisi */
+          transform: translateX(-50%) translateY(10px);
           min-width: 180px;
           background: var(--surface);
           border: 1px solid var(--border);
@@ -242,7 +248,6 @@ const Navbar = () => {
           z-index: 1040;
         }
 
-        /* RESPONSIVE LAYOUT */
         @media (min-width: 769px) {
           .nav-links {
             display: flex;
@@ -267,15 +272,14 @@ const Navbar = () => {
             gap: 1.5rem;
             z-index: 1050;
             overflow-y: auto;
-            align-items: center; /* Memastikan semua elemen menu berada di tengah layar */
+            align-items: center;
           }
 
           .nav-links.open { display: flex; }
 
-          /* Mobile Dropdown Style (In-flow) */
           .dropdown-menu {
-            position: static; /* Hilangkan posisi absolute agar tidak melayang */
-            transform: none !important; /* Hapus transform di mobile */
+            position: static;
+            transform: none !important;
             opacity: 1;
             visibility: visible;
             display: none;
